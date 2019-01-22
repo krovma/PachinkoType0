@@ -19,7 +19,7 @@ HGLRC g_openGLRenderingContext = nullptr;		// ...becomes RenderContext::m_apiRen
 const char* APP_NAME = "Protogame2D";	// #ProgramTitle
 
 NamedStrings g_gameConfigs;
-EventSystem* g_Event;
+//EventSystem* g_Event;
 
 												//-----------------------------------------------------------------------------------------------
 												// Handles Windows (Win32) messages/events; i.e. the OS is trying to tell us something happened.
