@@ -1,0 +1,7 @@
+<GameConfig
+  startLevel = "WizardTower"
+  windowAspect = "1.777"
+  isFullScreen = "False"
+  
+  consoleFont = "SquirrelFixedFont"
+/>
