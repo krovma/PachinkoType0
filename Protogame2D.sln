@@ -4,19 +4,10 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 15.0.27703.2047
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Protogame2D", "Code\Game\Game.vcxproj", "{3DC803F7-DE72-4E1D-821D-A554A4715E58}"
-	GlobalSection(PerforceSourceControlProviderSolutionProperties) = preSolution
-		SolutionIsControlled = True
-	EndGlobalSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Engine", "..\Engine\Code\Engine\Engine.vcxproj", "{D6A81505-141B-4586-AA59-68353EFB6770}"
-	GlobalSection(PerforceSourceControlProviderSolutionProperties) = preSolution
-		SolutionIsControlled = True
-	EndGlobalSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Engine", "Engine\Code\Engine\Engine.vcxproj", "{D6A81505-141B-4586-AA59-68353EFB6770}"
 EndProject
 Global
-	GlobalSection(PerforceSourceControlProviderSolutionProperties) = preSolution
-		SolutionIsControlled = True
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
