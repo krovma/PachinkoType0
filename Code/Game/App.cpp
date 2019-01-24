@@ -1,4 +1,8 @@
+#define WIN32_LEAN_AND_MEAN		// Always #define this before #including <windows.h>
+#include <windows.h>			// #include this (massive, platform-specific) header in very few places
+
 #include "Game/App.hpp"
+#include "Game/GameCommon.hpp"
 #include "Engine/Renderer/RenderContext.hpp"
 #include "Engine/Console/DevConsole.hpp"
 #include "Engine/Core/Time.hpp"
@@ -8,6 +12,9 @@ InputSystem* g_theInput = nullptr;
 RenderContext* g_theRenderer = nullptr;
 AudioSystem* g_theAudio = nullptr;
 DevConsole* g_theConsole = nullptr;
+
+extern HWND g_hWnd;
+
 App::App()
 {
 }
@@ -20,7 +27,7 @@ App::~App()
 void App::Startup()
 {
 	g_theInput = new InputSystem();
-	g_theRenderer = new RenderContext();
+	g_theRenderer = new RenderContext(g_hWnd, RESOLUTION_WIDTH, RESOLUTION_HEIGHT);
 	g_theAudio = new AudioSystem();
 	g_theInput->StartUp();
 	g_theRenderer->Startup();

@@ -19,7 +19,7 @@ HGLRC g_openGLRenderingContext = nullptr;		// ...becomes RenderContext::m_apiRen
 const char* APP_NAME = "Protogame2D";	// #ProgramTitle
 
 NamedStrings g_gameConfigs;
-//EventSystem* g_Event;
+
 
 												//-----------------------------------------------------------------------------------------------
 												// Handles Windows (Win32) messages/events; i.e. the OS is trying to tell us something happened.
@@ -62,12 +62,8 @@ LRESULT CALLBACK WindowsMessageHandlingProcedure(HWND windowHandle, UINT wmMessa
 }
 
 
-//-----------------------------------------------------------------------------------------------
-// #SD1ToDo: We will move this function to a more appropriate place later on...
-//
-void CreateOpenGLWindow(HINSTANCE applicationInstanceHandle, float clientAspect)
+void CreateAppWindow(HINSTANCE appInstanceHandle, float clientAspect)
 {
-	// Define a window style/class
 	WNDCLASSEX windowClassDescription;
 	memset(&windowClassDescription, 0, sizeof(windowClassDescription));
 	windowClassDescription.cbSize = sizeof(windowClassDescription);
@@ -82,7 +78,7 @@ void CreateOpenGLWindow(HINSTANCE applicationInstanceHandle, float clientAspect)
 	// #SD1ToDo: Add support for fullscreen mode (requires different window style flags than windowed mode)
 	const DWORD windowStyleFlags = WS_CAPTION | WS_BORDER | WS_THICKFRAME | WS_SYSMENU | WS_OVERLAPPED;
 	const DWORD windowStyleExFlags = WS_EX_APPWINDOW;
-	
+
 	// Get desktop rect, dimensions, aspect
 	RECT desktopRect;
 	HWND desktopWindowHandle = GetDesktopWindow();
@@ -95,13 +91,10 @@ void CreateOpenGLWindow(HINSTANCE applicationInstanceHandle, float clientAspect)
 	constexpr float maxClientFractionOfDesktop = 0.90f;
 	float clientWidth = desktopWidth * maxClientFractionOfDesktop;
 	float clientHeight = desktopHeight * maxClientFractionOfDesktop;
-	if (clientAspect > desktopAspect)
-	{
+	if (clientAspect > desktopAspect) {
 		// Client window has a wider aspect than desktop; shrink client height to match its width
 		clientHeight = clientWidth / clientAspect;
-	}
-	else
-	{
+	} else {
 		// Client window has a taller aspect than desktop; shrink client width to match its height
 		clientWidth = clientHeight * clientAspect;
 	}
@@ -132,8 +125,10 @@ void CreateOpenGLWindow(HINSTANCE applicationInstanceHandle, float clientAspect)
 		windowRect.bottom - windowRect.top,
 		NULL,
 		NULL,
-		applicationInstanceHandle,
+		appInstanceHandle,
 		NULL);
+
+	GUARANTEE_OR_DIE(nullptr!=g_hWnd, "Failed to create window\n");
 
 	ShowWindow(g_hWnd, SW_SHOW);
 	SetForegroundWindow(g_hWnd);
@@ -143,27 +138,8 @@ void CreateOpenGLWindow(HINSTANCE applicationInstanceHandle, float clientAspect)
 
 	HCURSOR cursor = LoadCursor(NULL, IDC_ARROW);
 	SetCursor(cursor);
-
-	PIXELFORMATDESCRIPTOR pixelFormatDescriptor;
-	memset(&pixelFormatDescriptor, 0, sizeof(pixelFormatDescriptor));
-	pixelFormatDescriptor.nSize = sizeof(pixelFormatDescriptor);
-	pixelFormatDescriptor.nVersion = 1;
-	pixelFormatDescriptor.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-	pixelFormatDescriptor.iPixelType = PFD_TYPE_RGBA;
-	pixelFormatDescriptor.cColorBits = 24;
-	pixelFormatDescriptor.cDepthBits = 24;
-	pixelFormatDescriptor.cAccumBits = 0;
-	pixelFormatDescriptor.cStencilBits = 8;
-
-	int pixelFormatCode = ChoosePixelFormat(g_displayDeviceContext, &pixelFormatDescriptor);
-	SetPixelFormat(g_displayDeviceContext, pixelFormatCode, &pixelFormatDescriptor);
-	g_openGLRenderingContext = wglCreateContext(g_displayDeviceContext);
-	wglMakeCurrent(g_displayDeviceContext, g_openGLRenderingContext);
-
-	// #SD1ToDo: move all OpenGL functions (including those below) to RenderContext.cpp (only!)
-	//glEnable(GL_BLEND);
-	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
+
 
 
 //-----------------------------------------------------------------------------------------------
@@ -200,13 +176,16 @@ void Startup(HINSTANCE applicationInstanceHandle)
 	}
 	g_gameConfigs.PopulateFromXmlElement(*gameConfigXmlRoot);
 
-	CreateOpenGLWindow(applicationInstanceHandle, CLIENT_ASPECT);
+	CreateAppWindow(applicationInstanceHandle, CLIENT_ASPECT);
+	
+	g_theApp = new App();
+	g_theApp->Startup();
+
+
 
 	g_Event = new EventSystem();
 	g_Event->Startup();
 
-	g_theApp = new App();
-	g_theApp->Startup();
 }
 
 
@@ -234,7 +213,7 @@ int WINAPI WinMain(HINSTANCE applicationInstanceHandle, HINSTANCE, LPSTR command
 	{
 		RunMessagePump();
 		g_theApp->RunFrame();
-		SwapBuffers(g_displayDeviceContext);
+		//SwapBuffers(g_displayDeviceContext);
 		//Sleep(16);// Fake 60fps
 	}
 
