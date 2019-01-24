@@ -61,7 +61,9 @@ void Game::Render() const
 
 	float lerpedUpTime = (sinf(m_upSeconds) + 1.0f) * 0.5f;
 	Rgba color = Lerp(Rgba::BLUE, Rgba::RED, lerpedUpTime);
+	//DebuggerPrintf("==%f %f %f %f\n", color.r, color.g, color.b, color.a);
 	g_theRenderer->ClearScreen(color);
+
 	_RenderDebugInfo(true);
 	
 	g_theRenderer->EndCamera(cam);
