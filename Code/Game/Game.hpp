@@ -52,4 +52,5 @@ private:
 
 //DEBUG
 	bool m_flagDebug = false;
+	float m_upSeconds = 0.f;
 };

@@ -24,6 +24,8 @@ void App::Startup()
 	g_theAudio = new AudioSystem();
 	g_theInput->StartUp();
 	g_theRenderer->Startup();
+	g_theConsole = new DevConsole(g_theRenderer, 48, 32);
+	g_theConsole->Startup();
 	m_theGame = new Game();
 	m_theGame->Startup();
 }

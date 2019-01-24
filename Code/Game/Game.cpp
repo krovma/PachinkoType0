@@ -46,10 +46,9 @@ void Game::BeginFrame()
 	g_theConsole->BeginFrame();
 }
 
-
 void Game::Update(float deltaSeconds)
 {
-
+	m_upSeconds += deltaSeconds;
 }
 
 void Game::Render() const
@@ -59,6 +58,10 @@ void Game::Render() const
 	g_theRenderer->BeginCamera(cam);
 
 	_RenderDebugInfo(false);
+
+	float lerpedUpTime = (sinf(m_upSeconds) + 1.0f) * 0.5f;
+	Rgba color = Lerp(Rgba::BLUE, Rgba::RED, lerpedUpTime);
+	g_theRenderer->ClearScreen(color);
 	_RenderDebugInfo(true);
 	
 	g_theRenderer->EndCamera(cam);
