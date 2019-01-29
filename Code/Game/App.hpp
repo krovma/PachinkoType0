@@ -23,7 +23,7 @@ public:
 private:
 
 	Game* m_theGame = nullptr;
-
+	
 	int m_frameCount = 0;
 	bool m_flagQuit = false;
 	bool m_flagPaused = false;

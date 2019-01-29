@@ -16,10 +16,10 @@ constexpr float CLIENT_ASPECT = 2.0f; // We are requesting a 1:1 aspect (square)
 HWND g_hWnd = nullptr;							// ...becomes WindowContext::m_windowHandle
 HDC g_displayDeviceContext = nullptr;			// ...becomes WindowContext::m_displayContext
 HGLRC g_openGLRenderingContext = nullptr;		// ...becomes RenderContext::m_apiRenderingContext
-const char* APP_NAME = "Protogame2D";	// #ProgramTitle
+const char* APP_NAME = "Pachinko Type:0";	// #ProgramTitle
 
 NamedStrings g_gameConfigs;
-//EventSystem* g_Event;
+
 
 												//-----------------------------------------------------------------------------------------------
 												// Handles Windows (Win32) messages/events; i.e. the OS is trying to tell us something happened.
@@ -76,13 +76,13 @@ void CreateOpenGLWindow(HINSTANCE applicationInstanceHandle, float clientAspect)
 	windowClassDescription.hInstance = GetModuleHandle(NULL);
 	windowClassDescription.hIcon = NULL;
 	windowClassDescription.hCursor = NULL;
-	windowClassDescription.lpszClassName = TEXT("Protogame2D"); // #ProgramTitle
+	windowClassDescription.lpszClassName = TEXT("Pachinko Type:0"); // #ProgramTitle
 	RegisterClassEx(&windowClassDescription);
 
 	// #SD1ToDo: Add support for fullscreen mode (requires different window style flags than windowed mode)
 	const DWORD windowStyleFlags = WS_CAPTION | WS_BORDER | WS_THICKFRAME | WS_SYSMENU | WS_OVERLAPPED;
 	const DWORD windowStyleExFlags = WS_EX_APPWINDOW;
-	
+
 	// Get desktop rect, dimensions, aspect
 	RECT desktopRect;
 	HWND desktopWindowHandle = GetDesktopWindow();
@@ -95,13 +95,10 @@ void CreateOpenGLWindow(HINSTANCE applicationInstanceHandle, float clientAspect)
 	constexpr float maxClientFractionOfDesktop = 0.90f;
 	float clientWidth = desktopWidth * maxClientFractionOfDesktop;
 	float clientHeight = desktopHeight * maxClientFractionOfDesktop;
-	if (clientAspect > desktopAspect)
-	{
+	if (clientAspect > desktopAspect) {
 		// Client window has a wider aspect than desktop; shrink client height to match its width
 		clientHeight = clientWidth / clientAspect;
-	}
-	else
-	{
+	} else {
 		// Client window has a taller aspect than desktop; shrink client width to match its height
 		clientWidth = clientHeight * clientAspect;
 	}
