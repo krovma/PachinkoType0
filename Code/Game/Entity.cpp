@@ -7,6 +7,9 @@
 Entity::Entity(Game *theGame)
 	:m_theGame(theGame)
 {
+	SetPosition(Vec2::ZERO);
+	SetAcceleration(Vec2::ZERO);
+	SetVelocity(Vec2::ZERO);
 }
 
 void Entity::Update(float deltaSeconds)

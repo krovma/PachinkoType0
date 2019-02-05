@@ -4,12 +4,13 @@
 #include "Engine/Audio/AudioSystem.hpp"
 #include "Engine/Math/Vec2.hpp"
 #include "Engine/Core/RNG.hpp"
-
+#include "Engine/Physics/PhysicsSystem.hpp"
 #include "Game/GameCommon.hpp"
 
 extern RenderContext* g_theRenderer;
 extern InputSystem* g_theInput;
 extern AudioSystem* g_theAudio;
+extern PhysicsSystem* g_GamePhysics;
 
 class Game
 {
@@ -50,7 +51,16 @@ private:
 
 	RNG* m_rng = nullptr;
 
+	Vec2 m_cursor;
+	Vec2 m_cursorVelocity;
+	int m_possessedEntityIndex;
+	bool m_isSelecting = false;
+
+	std::vector<Entity*> m_entites;
+	void _possessNearest();
+	void _setPossessInfo(int index);
+	const int m_firstPossessable = 0;
 //DEBUG
-	bool m_flagDebug = false;
+	bool m_flagDebug = true;
 	float m_upSeconds = 0.f;
 };

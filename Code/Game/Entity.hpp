@@ -15,8 +15,8 @@ enum EntityTypes
 class Entity
 {
 public:
-	Entity() = default;
-	Entity(Game *theGame);
+	Entity();
+	Entity(Game* theGame);
 
 	virtual void Update(float deltaSeconds);
 	virtual void Render() const;
@@ -43,7 +43,7 @@ public:
 	void SetAngularAcceleration(float angularAcceleration);
 
 protected:
-	Game * m_theGame = nullptr;
+	Game* m_theGame = nullptr;
 
 	Vec2 m_position;
 	Vec2 m_velocity;
@@ -53,7 +53,7 @@ protected:
 	float m_angularAcceleration = 0.f;
 
 	float m_radiusPhysics = 0.f;
-	float m_radiusCosmetic = 0.f;
+	float m_radiusCosmetic = 5.f;
 
 	bool m_flagDead = false;
 	bool m_flagGarbage = false;

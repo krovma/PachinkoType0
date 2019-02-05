@@ -24,10 +24,13 @@ void App::Startup()
 	g_theAudio = new AudioSystem();
 	g_theInput->StartUp();
 	g_theRenderer->Startup();
-	g_theConsole = new DevConsole(g_theRenderer, 48, 32);
+	g_theConsole = new DevConsole(g_theRenderer, 32, 48);
 	g_theConsole->Startup();
 	m_theGame = new Game();
 	m_theGame->Startup();
+	
+	g_theConsole->s_consoleFont = g_theRenderer->AcquireBitmapFontFromFile(
+		g_gameConfigs.GetString("consoleFont","SquirrelFixedFont").c_str());
 }
 
 void App::Shutdown()
@@ -93,6 +96,8 @@ bool App::HandleKeyPressed(unsigned char keyCode)
 		delete m_theGame;
 		m_theGame = new Game();
 		m_theGame->Startup();
+	} else if (KEY_ESC == keyCode) {
+		HandleQuitRequested();
 	} else {
 		m_theGame->DoKeyDown(keyCode);
 	}
