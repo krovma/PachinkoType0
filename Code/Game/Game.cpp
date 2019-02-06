@@ -14,7 +14,7 @@
 #include "Engine/Event/EventSystem.hpp"
 #include "Engine/Core/VertexUtils.hpp"
 #include <math.h>
-
+#include "Engine/Math/FloatRange.hpp"
 
 #include "Engine/Physics/Rigidbody2D.hpp"
 #include "Engine/Physics/AABBCollider2D.hpp"
@@ -226,9 +226,14 @@ void Game::DoKeyDown(unsigned char keyCode)
 	}
 
 	if (!m_isSelecting) {
+		std::string shape;
+		float w = g_rng.GetFloatInRange(FloatRange(2.f, 5.f));
+		float h = g_rng.GetFloatInRange(FloatRange(2.f, 5.f));
+		shape = Stringf("%g,%g;%g,%g", -w, -h, w, h);
+		float r = g_rng.GetFloatInRange(FloatRange(1.f, 10.f));
 		if (keyCode == KEY_F1) {
 			NamedStrings info;
-			info.Set("localShape", "-2,-1;2,1");
+			info.Set("localShape", shape.c_str());
 			Rigidbody2D* created = g_GamePhysics->NewRigidbody2D(
 				this,
 				COLLIDER_AABB2,
@@ -239,7 +244,7 @@ void Game::DoKeyDown(unsigned char keyCode)
 		}
 		if (keyCode == KEY_F2) {
 			NamedStrings info;
-			info.Set("radius", "1.7");
+			info.Set("radius", Stringf("%g",r).c_str());
 			Rigidbody2D* created = g_GamePhysics->NewRigidbody2D(
 				this,
 				COLLIDER_DISK2D,
@@ -250,7 +255,7 @@ void Game::DoKeyDown(unsigned char keyCode)
 		}
 		if (keyCode == KEY_F3) {
 			NamedStrings info;
-			info.Set("localShape", "-2,-2;2,2");
+			info.Set("localShape", shape.c_str());
 			Rigidbody2D* created = g_GamePhysics->NewRigidbody2D(
 				this,
 				COLLIDER_AABB2,
@@ -262,7 +267,7 @@ void Game::DoKeyDown(unsigned char keyCode)
 		}
 		if (keyCode == KEY_F4) {
 			NamedStrings info;
-			info.Set("radius", "1.7");
+			info.Set("radius", Stringf("%g", r).c_str());
 			Rigidbody2D* created = g_GamePhysics->NewRigidbody2D(
 				this,
 				COLLIDER_DISK2D,
