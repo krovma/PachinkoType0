@@ -1,8 +1,11 @@
 #pragma once
 #include "Game/GameCommon.hpp"
 #include "Engine/Core/Vertex_PCU.hpp"
+#include "Engine/Math/Transform2D.hpp"
+//
 
 class Game;
+class Rigidbody2D;
 
 enum EntityTypes
 {
@@ -15,7 +18,6 @@ enum EntityTypes
 class Entity
 {
 public:
-	Entity();
 	Entity(Game* theGame);
 
 	virtual void Update(float deltaSeconds);
@@ -24,33 +26,23 @@ public:
 	bool IsDead() const { return m_flagDead; }
 	bool IsGarbage() const { return m_flagGarbage; }
 	bool IsOffScreen() const;
-	Vec2 GetPosition() const { return m_position; }
+	Vec2 GetPosition() const { return m_transform.Position; }
 	float GetRadiusPhysics() const { return m_radiusPhysics; }
 	float GetRadiusCosmetic() const { return m_radiusCosmetic; }
-	const Vec2 GetVelocity() const { return m_velocity; }
-	const Vec2 GetAcceleration() const { return m_acceleration; }
-	float GetOrientationDegrees() const { return m_orientationDegrees; }
-	float GetAngularVelocity() const { return m_angularVelocity; }
-	float GetAngularAcceleration() const { return m_angularAcceleration; }
-
+	Transform2D* GetTransform() { return &m_transform; }
+	
 	void MarkGarbage();
 
+	void BindRigidbody(Rigidbody2D* rigidbody);
+	Rigidbody2D* GetRigidbody() const { return m_rigidbody; }
 	void SetPosition(const Vec2 &position);
-	void SetVelocity(const Vec2 &velocity);
-	void SetAcceleration(const Vec2 &acceleraion);
-	void SetOrientationDegrees(float orientationDegrees);
-	void SetAngularVelocity(float angularVelocity);
-	void SetAngularAcceleration(float angularAcceleration);
+
 
 protected:
 	Game* m_theGame = nullptr;
 
-	Vec2 m_position;
-	Vec2 m_velocity;
-	Vec2 m_acceleration;
-	float m_orientationDegrees = 0.f;
-	float m_angularVelocity = 0.f;
-	float m_angularAcceleration = 0.f;
+	Transform2D m_transform;
+	Rigidbody2D* m_rigidbody = nullptr;
 
 	float m_radiusPhysics = 0.f;
 	float m_radiusCosmetic = 5.f;

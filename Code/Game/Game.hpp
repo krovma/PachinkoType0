@@ -12,6 +12,8 @@ extern InputSystem* g_theInput;
 extern AudioSystem* g_theAudio;
 extern PhysicsSystem* g_GamePhysics;
 
+class Entity;
+
 class Game
 {
 public:

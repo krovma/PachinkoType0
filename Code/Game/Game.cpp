@@ -1,6 +1,7 @@
 #include "Engine/Core/Vertex_PCU.hpp"
 #include "Game/GameCommon.hpp"
 #include "Game/Game.hpp"
+#include "Game//Entity.hpp"
 #include "Engine/Math/MathUtils.hpp"
 #include "Engine/Renderer/Camera.hpp"
 #include "Engine/Renderer/Texture.hpp"
@@ -15,7 +16,6 @@
 #include "Engine/Core/VertexUtils.hpp"
 #include <math.h>
 #include "Engine/Math/FloatRange.hpp"
-
 #include "Engine/Physics/Rigidbody2D.hpp"
 #include "Engine/Physics/AABBCollider2D.hpp"
 #include "Engine/Physics/DiskCollider2D.hpp"
@@ -120,7 +120,7 @@ void Game::_RenderDebugInfo(bool afterRender) const
 		return;
 	int size = (int)m_entites.size();
 	for (int i = 0; i < size; ++i) {
-		Rigidbody2D* rb = (Rigidbody2D*)m_entites[i];
+		Rigidbody2D* rb = m_entites[i]->GetRigidbody();
 		const Collider2D* col = rb->GetCollider();
 		PhysicsSimulationType simulation = rb->GetSimulationType();
 		Rgba color = Rgba::YELLOW;
@@ -150,8 +150,8 @@ void Game::_possessNearest()
 		if (m_entites[i]->IsGarbage()) {
 			continue;
 		}
-		Rigidbody2D* rb = (Rigidbody2D*)m_entites[i];
-		Collider2D* col = (Collider2D*)rb->GetCollider();
+		Entity* entity = m_entites[i];
+		Collider2D* col = (Collider2D*)entity->GetRigidbody()->GetCollider();
 		float dist2;
 		if (col->m_type == COLLIDER_AABB2) {
 			Vec2 closestPoint = GetNearestPointOnAABB2(m_cursor, ((AABBCollider2D*)col)->GetWorldShape());
@@ -161,10 +161,10 @@ void Game::_possessNearest()
 				closetEntityIndex = i;
 			}
 		} else {
-			Vec2 closestPoint = rb->GetPosition();
+			Vec2 closestPoint = entity->GetPosition();
 			closestPoint = m_cursor - closestPoint;
 			closestPoint.ClampLength(((DiskCollider2D*)col)->GetRadius());
-			closestPoint += rb->GetPosition();
+			closestPoint += entity->GetPosition();
 			dist2 = GetDistanceSquare(m_cursor, closestPoint);
 			if (dist2 < minDist2) {
 				minDist2 = dist2;
@@ -234,48 +234,56 @@ void Game::DoKeyDown(unsigned char keyCode)
 		if (keyCode == KEY_F1) {
 			NamedStrings info;
 			info.Set("localShape", shape.c_str());
-			Rigidbody2D* created = g_GamePhysics->NewRigidbody2D(
-				this,
+			Entity* createdEntity = new Entity(this);
+			Rigidbody2D* createdRb = g_GamePhysics->NewRigidbody2D(
 				COLLIDER_AABB2,
-				info
+				info,
+				createdEntity->GetTransform()
 			);
-			created->SetPosition(m_cursor);
-			m_entites.push_back(created);
+			createdEntity->SetPosition(m_cursor);
+			createdEntity->BindRigidbody(createdRb);
+			m_entites.push_back(createdEntity);
 		}
 		if (keyCode == KEY_F2) {
 			NamedStrings info;
 			info.Set("radius", Stringf("%g",r).c_str());
-			Rigidbody2D* created = g_GamePhysics->NewRigidbody2D(
-				this,
+			Entity* createdEntity = new Entity(this);
+			Rigidbody2D* createdRb = g_GamePhysics->NewRigidbody2D(
 				COLLIDER_DISK2D,
-				info
+				info,
+				createdEntity->GetTransform()
 			);
-			created->SetPosition(m_cursor);
-			m_entites.push_back(created);
+			createdEntity->SetPosition(m_cursor);
+			createdEntity->BindRigidbody(createdRb);
+			m_entites.push_back(createdEntity);
 		}
 		if (keyCode == KEY_F3) {
 			NamedStrings info;
 			info.Set("localShape", shape.c_str());
-			Rigidbody2D* created = g_GamePhysics->NewRigidbody2D(
-				this,
+			Entity* createdEntity = new Entity(this);
+			Rigidbody2D* createdRb = g_GamePhysics->NewRigidbody2D(
 				COLLIDER_AABB2,
-				info
+				info,
+				createdEntity->GetTransform()
 			);
-			created->SetPosition(m_cursor);
-			created->SetSimulationType(PHSX_SIM_DYNAMIC);
-			m_entites.push_back(created);
+			createdRb->SetSimulationType(PHSX_SIM_DYNAMIC);
+			createdEntity->SetPosition(m_cursor);
+			createdEntity->BindRigidbody(createdRb);
+			m_entites.push_back(createdEntity);
 		}
 		if (keyCode == KEY_F4) {
 			NamedStrings info;
 			info.Set("radius", Stringf("%g", r).c_str());
-			Rigidbody2D* created = g_GamePhysics->NewRigidbody2D(
-				this,
+			Entity* createdEntity = new Entity(this);
+			Rigidbody2D* createdRb = g_GamePhysics->NewRigidbody2D(
 				COLLIDER_DISK2D,
-				info
+				info,
+				createdEntity->GetTransform()
 			);
-			created->SetPosition(m_cursor);
-			created->SetSimulationType(PHSX_SIM_DYNAMIC);
-			m_entites.push_back(created);
+			createdRb->SetSimulationType(PHSX_SIM_DYNAMIC);
+			createdEntity->SetPosition(m_cursor);
+			createdEntity->BindRigidbody(createdRb);
+			m_entites.push_back(createdEntity);
 		}
 		if (keyCode == KEY_TAB) {
 			_possessNearest();

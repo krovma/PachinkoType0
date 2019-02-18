@@ -1,21 +1,16 @@
 #include "Game/Entity.hpp"
 #include "Game/GameCommon.hpp"
 #include "Game/Game.hpp"
-
+#include "Engine/Physics/Rigidbody2D.hpp"
 #include "Engine/Math/MathUtils.hpp"
 //////////////////////////////////////////////////////////////////////////
 Entity::Entity(Game *theGame)
 	:m_theGame(theGame)
 {
-	SetPosition(Vec2::ZERO);
-	SetAcceleration(Vec2::ZERO);
-	SetVelocity(Vec2::ZERO);
 }
 
 void Entity::Update(float deltaSeconds)
 {
-	m_velocity += m_acceleration * deltaSeconds;
-	m_position += m_velocity * deltaSeconds;
 }
 
 void Entity::Render() const
@@ -30,10 +25,10 @@ bool Entity::IsOffScreen() const
 	m_theGame->GetScreenSize(&screenW, &screenH);
 	
 	return
-		FloatGt(m_position.x, m_radiusCosmetic + screenW)
-		|| FloatGt(m_position.y, m_radiusCosmetic + screenH)
-		|| FloatLt(m_position.x, -m_radiusCosmetic)
-		|| FloatLt(m_position.y, -m_radiusCosmetic);//not exactly
+		FloatGt(m_transform.Position.x, m_radiusCosmetic + screenW)
+		|| FloatGt(m_transform.Position.y, m_radiusCosmetic + screenH)
+		|| FloatLt(m_transform.Position.x, -m_radiusCosmetic)
+		|| FloatLt(m_transform.Position.y, -m_radiusCosmetic);//not exactly
 
 }
 
@@ -43,32 +38,14 @@ void Entity::MarkGarbage()
 	m_flagDead = true;
 }
 
+////////////////////////////////
+void Entity::BindRigidbody(Rigidbody2D* rigidbody)
+{
+	m_rigidbody = rigidbody;
+	m_rigidbody->UpdateFromTransform();
+}
+
 void Entity::SetPosition(const Vec2 &position)
 {
-	m_position = position;
-}
-
-void Entity::SetVelocity(const Vec2 &velocity)
-{
-	m_velocity = velocity;
-}
-
-void Entity::SetAcceleration(const Vec2 &acceleraion)
-{
-	m_acceleration = acceleraion;
-}
-
-void Entity::SetOrientationDegrees(float orientationDegrees)
-{
-	m_orientationDegrees = orientationDegrees;
-}
-
-void Entity::SetAngularVelocity(float angularVelocity)
-{
-	m_angularVelocity = angularVelocity;
-}
-
-void Entity::SetAngularAcceleration(float angularAcceleration)
-{
-	m_angularAcceleration = angularAcceleration;
+	m_transform.Position = position;
 }
