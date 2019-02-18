@@ -100,16 +100,23 @@ void Game::Render() const
 	//Render cursor here
 	std::vector<Vertex_PCU> verts;
 	AABB2 cursorBox(m_cursor - Vec2(0.75f, 0.75f), m_cursor + Vec2(0.75f, 0.75f));
-	AddVerticesOfLine2D(verts, cursorBox.Min, cursorBox.Max, 0.1f, Rgba::LIME);
+	AddVerticesOfLine2D(verts, cursorBox.Min, cursorBox.Max, 0.2f, Rgba::LIME);
 	AddVerticesOfLine2D(
 		verts,
 		Vec2(cursorBox.Min.x, cursorBox.Max.y),
 		Vec2(cursorBox.Max.x, cursorBox.Min.y),
-		0.1f, Rgba::LIME
+		0.2f, Rgba::LIME
 	);
 	g_theRenderer->BindTexture(nullptr);
 	g_theRenderer->DrawVertexArray(verts.size(), verts);
 	_RenderDebugInfo(true);
+	verts.clear();
+	DevConsole::s_consoleFont->AddVertsForText2D(verts, Vec2(0, 97.f), 2.f,
+		Stringf("Objects: %u", m_entites.size()),
+		Rgba::LIME);
+	g_theRenderer->BindTexture(DevConsole::s_consoleFont->GetFontTexture());
+	g_theRenderer->DrawVertexArray(verts.size(), verts);
+
 	g_theConsole->RenderConsole();
 	g_theRenderer->EndCamera(cam);
 }
