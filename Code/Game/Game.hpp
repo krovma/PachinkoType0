@@ -45,6 +45,10 @@ public:
 
 private:
 	void _RenderDebugInfo(bool afterRender) const;
+	void _possessNearest();
+	void _setPossessInfo(int index);
+	void _SpawnBox(const Vec2& position, PhysicsSimulationType simulation);
+	void _SpawnDisk(Vec2& position, PhysicsSimulationType simulation);
 
 private:
 	bool m_flagRunning = false;
@@ -55,13 +59,15 @@ private:
 
 	Vec2 m_cursor;
 	Vec2 m_cursorVelocity;
+	bool m_autoMass = true;
+	float m_defaultMass = 1.f;
+	float m_defaultBounce = 1.f;
+	float m_defaultSmooth = 1.f;
 	int m_possessedEntityIndex;
 	bool m_isSelecting = false;
+	const int m_firstPossessable = 0;
 
 	std::vector<Entity*> m_entites;
-	void _possessNearest();
-	void _setPossessInfo(int index);
-	const int m_firstPossessable = 0;
 //DEBUG
 	bool m_flagDebug = true;
 	float m_upSeconds = 0.f;

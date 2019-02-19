@@ -79,9 +79,10 @@ void Game::Update(float deltaSeconds)
 	}
 	if (!m_isSelecting) {
 		for (auto eachEntityIter = m_entites.begin(); eachEntityIter != m_entites.end();) {
-			auto eachEntity = *eachEntityIter;
+			Entity* eachEntity = *eachEntityIter;
 			if (eachEntity->IsGarbage()) {
-				g_GamePhysics->DeleteRigidbody2D((Rigidbody2D*)eachEntity);
+				g_GamePhysics->DeleteRigidbody2D(eachEntity->GetRigidbody());
+				delete eachEntity;
 				eachEntityIter = m_entites.erase(eachEntityIter);
 			} else {
 				++eachEntityIter;
@@ -111,10 +112,17 @@ void Game::Render() const
 	g_theRenderer->DrawVertexArray(verts.size(), verts);
 	_RenderDebugInfo(true);
 	verts.clear();
-	DevConsole::s_consoleFont->AddVertsForText2D(verts, Vec2(0, 97.f), 2.f,
-		Stringf("Objects: %u", m_entites.size()),
-		Rgba::LIME);
 	g_theRenderer->BindTexture(DevConsole::s_consoleFont->GetFontTexture());
+	std::string info = Stringf("Obj: %u Mass:%s Bounce: %.2f Friction: %.2f", m_entites.size()
+		, m_autoMass ? "[A]uto" : Stringf(" %.2f",m_defaultMass).c_str(),
+		m_defaultBounce, 1.f - m_defaultSmooth);
+	DevConsole::s_consoleFont->AddVertsForText2D(verts, Vec2(0, 98.f), 1.5f, info, Rgba::SILVER);
+	if (m_isSelecting) {
+		Rigidbody2D* rb = m_entites[m_possessedEntityIndex]->GetRigidbody();
+		info = Stringf("Selected>> Mass: %.2f Bounce: %.2f Friction: %.2f"
+			, rb->GetMassKg(), rb->GetBounciness(), 1.f - rb->GetSmoothness());
+		DevConsole::s_consoleFont->AddVertsForText2D(verts, Vec2(0, 96.f), 1.5f, info, Rgba::LIME);
+	}
 	g_theRenderer->DrawVertexArray(verts.size(), verts);
 
 	g_theConsole->RenderConsole();
@@ -194,6 +202,59 @@ void Game::_setPossessInfo(int index)
 	m_isSelecting = true;
 }
 
+////////////////////////////////
+void Game::_SpawnBox(const Vec2& position, PhysicsSimulationType simulation)
+{
+	std::string shape;
+	float w = g_rng.GetFloatInRange(FloatRange(2.f, 5.f));
+	float h = g_rng.GetFloatInRange(FloatRange(2.f, 5.f));
+	shape = Stringf("%g,%g;%g,%g", -w, -h, w, h);
+	NamedStrings info;
+	info.Set("localShape", shape.c_str());
+	Entity* createdEntity = new Entity(this);
+	Rigidbody2D* createdRb = g_GamePhysics->NewRigidbody2D(
+		COLLIDER_AABB2,
+		info,
+		createdEntity->GetTransform()
+	);
+	createdEntity->SetPosition(position);
+	if (m_autoMass) {
+		createdRb->SetMassKg(w * h * 0.1f);
+	} else {
+		createdRb->SetMassKg(m_defaultMass);
+	}
+	createdRb->SetBounciness(m_defaultBounce);
+	createdRb->SetSmoothness(m_defaultSmooth);
+	createdRb->SetSimulationType(simulation);
+	createdEntity->BindRigidbody(createdRb);
+	m_entites.push_back(createdEntity);
+}
+
+////////////////////////////////
+void Game::_SpawnDisk(Vec2& position, PhysicsSimulationType simulation)
+{
+	float r = g_rng.GetFloatInRange(FloatRange(1.f, 10.f));
+	NamedStrings info;
+	info.Set("radius", Stringf("%g", r).c_str());
+	Entity* createdEntity = new Entity(this);
+	Rigidbody2D* createdRb = g_GamePhysics->NewRigidbody2D(
+		COLLIDER_DISK2D,
+		info,
+		createdEntity->GetTransform()
+	);
+	createdEntity->SetPosition(position);
+	if (m_autoMass) {
+		createdRb->SetMassKg(3.1415926f * r * r * 0.1f);
+	} else {
+		createdRb->SetMassKg(m_defaultMass);
+	}
+	createdRb->SetBounciness(m_defaultBounce);
+	createdRb->SetSmoothness(m_defaultSmooth);
+	createdRb->SetSimulationType(simulation);
+	createdEntity->BindRigidbody(createdRb);
+	m_entites.push_back(createdEntity);
+}
+
 void Game::EndFrame()
 {
 	g_theRenderer->EndFrame();
@@ -220,6 +281,10 @@ void Game::SetScreenSize(float width, float height)
 
 void Game::DoKeyDown(unsigned char keyCode)
 {
+	if (keyCode == KEY_A) {
+		m_autoMass = !m_autoMass;
+	}
+
 	if (keyCode == KEY_SLASH) {
 		if (g_theConsole->GetConsoleMode() == CONSOLE_OFF) {
 			g_theConsole->SetConsoleMode(CONSOLE_PASSIVE);
@@ -233,64 +298,17 @@ void Game::DoKeyDown(unsigned char keyCode)
 	}
 
 	if (!m_isSelecting) {
-		std::string shape;
-		float w = g_rng.GetFloatInRange(FloatRange(2.f, 5.f));
-		float h = g_rng.GetFloatInRange(FloatRange(2.f, 5.f));
-		shape = Stringf("%g,%g;%g,%g", -w, -h, w, h);
-		float r = g_rng.GetFloatInRange(FloatRange(1.f, 10.f));
 		if (keyCode == KEY_F1) {
-			NamedStrings info;
-			info.Set("localShape", shape.c_str());
-			Entity* createdEntity = new Entity(this);
-			Rigidbody2D* createdRb = g_GamePhysics->NewRigidbody2D(
-				COLLIDER_AABB2,
-				info,
-				createdEntity->GetTransform()
-			);
-			createdEntity->SetPosition(m_cursor);
-			createdEntity->BindRigidbody(createdRb);
-			m_entites.push_back(createdEntity);
+			_SpawnBox(m_cursor, PHSX_SIM_STATIC);
 		}
 		if (keyCode == KEY_F2) {
-			NamedStrings info;
-			info.Set("radius", Stringf("%g",r).c_str());
-			Entity* createdEntity = new Entity(this);
-			Rigidbody2D* createdRb = g_GamePhysics->NewRigidbody2D(
-				COLLIDER_DISK2D,
-				info,
-				createdEntity->GetTransform()
-			);
-			createdEntity->SetPosition(m_cursor);
-			createdEntity->BindRigidbody(createdRb);
-			m_entites.push_back(createdEntity);
+			_SpawnDisk(m_cursor, PHSX_SIM_STATIC);
 		}
 		if (keyCode == KEY_F3) {
-			NamedStrings info;
-			info.Set("localShape", shape.c_str());
-			Entity* createdEntity = new Entity(this);
-			Rigidbody2D* createdRb = g_GamePhysics->NewRigidbody2D(
-				COLLIDER_AABB2,
-				info,
-				createdEntity->GetTransform()
-			);
-			createdRb->SetSimulationType(PHSX_SIM_DYNAMIC);
-			createdEntity->SetPosition(m_cursor);
-			createdEntity->BindRigidbody(createdRb);
-			m_entites.push_back(createdEntity);
+			_SpawnBox(m_cursor, PHSX_SIM_DYNAMIC);
 		}
 		if (keyCode == KEY_F4) {
-			NamedStrings info;
-			info.Set("radius", Stringf("%g", r).c_str());
-			Entity* createdEntity = new Entity(this);
-			Rigidbody2D* createdRb = g_GamePhysics->NewRigidbody2D(
-				COLLIDER_DISK2D,
-				info,
-				createdEntity->GetTransform()
-			);
-			createdRb->SetSimulationType(PHSX_SIM_DYNAMIC);
-			createdEntity->SetPosition(m_cursor);
-			createdEntity->BindRigidbody(createdRb);
-			m_entites.push_back(createdEntity);
+			_SpawnDisk(m_cursor, PHSX_SIM_DYNAMIC);
 		}
 		if (keyCode == KEY_TAB) {
 			_possessNearest();
@@ -317,6 +335,40 @@ void Game::DoKeyDown(unsigned char keyCode)
 			m_isSelecting = false;
 		}
 	}
+
+	if (keyCode == KEY_N) {
+		if (m_isSelecting) {
+			Rigidbody2D* selected = m_entites[m_possessedEntityIndex]->GetRigidbody();
+			selected->SetMassKg(Clamp(selected->GetMassKg() - 0.1f, 0.f, 9999999.f));
+		} else {
+			m_defaultMass = Clamp(m_defaultMass - 0.1f, 0.1f, 9999999.f);
+		}
+	}
+	if (keyCode == KEY_M) {
+		if (m_isSelecting) {
+			Rigidbody2D* selected = m_entites[m_possessedEntityIndex]->GetRigidbody();
+			selected->SetMassKg(Clamp(selected->GetMassKg() + 0.1f, 0.f, 9999999.f));
+		} else {
+			m_defaultMass = Clamp(m_defaultMass + 0.1f, 0.1f, 9999999.f);
+		}
+	}
+	if (keyCode == KEY_COMMA) {
+		if (m_isSelecting) {
+			Rigidbody2D* selected = m_entites[m_possessedEntityIndex]->GetRigidbody();
+			selected->SetBounciness(Clamp(selected->GetBounciness() - 0.1f, 0.f, 1.f));
+		} else {
+			m_defaultBounce = Clamp(m_defaultBounce - 0.1f, 0.f, 1.f);
+		}
+	}
+	if (keyCode == KEY_PERIOD) {
+		if (m_isSelecting) {
+			Rigidbody2D* selected = m_entites[m_possessedEntityIndex]->GetRigidbody();
+			selected->SetBounciness(Clamp(selected->GetBounciness() + 0.1f, 0.f, 1.f));
+		} else {
+			m_defaultBounce = Clamp(m_defaultBounce + 0.1f, 0.f, 1.f);
+		}
+	}
+
 	if (keyCode == KEY_UPARROW) {
 		m_cursorVelocity += Vec2(0.f, 50.f);
 	}

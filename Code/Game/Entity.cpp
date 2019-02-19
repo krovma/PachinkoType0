@@ -11,6 +11,7 @@ Entity::Entity(Game *theGame)
 
 void Entity::Update(float deltaSeconds)
 {
+	UNUSED(deltaSeconds);
 }
 
 void Entity::Render() const
