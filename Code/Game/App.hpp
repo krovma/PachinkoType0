@@ -19,11 +19,12 @@ public:
 	bool HandleKeyPressed(unsigned char keyCode);
 	bool HandleKeyReleased(unsigned char keyCode);
 	bool HandleQuitRequested();
+	bool HandleChar(char charCode);
 
 private:
 
 	Game* m_theGame = nullptr;
-	
+
 	int m_frameCount = 0;
 	bool m_flagQuit = false;
 	bool m_flagPaused = false;

@@ -6,12 +6,15 @@
 #include "Engine/Core/RNG.hpp"
 #include "Engine/Physics/PhysicsSystem.hpp"
 #include "Game/GameCommon.hpp"
+#include "Engine/Console/DevConsole.hpp"
 
 extern RenderContext* g_theRenderer;
 extern InputSystem* g_theInput;
 extern AudioSystem* g_theAudio;
 extern PhysicsSystem* g_GamePhysics;
-
+extern DevConsole* g_theConsole;
+class Camera;
+class Shader;
 class Entity;
 
 class Game
@@ -19,8 +22,9 @@ class Game
 public:
 	Game();
 	~Game();
-	
+
 	bool IsRunning() const { return m_flagRunning; }
+	bool IsConsoleUp() const { return (g_theConsole->GetConsoleMode() == CONSOLE_PASSIVE); }
 	void Startup();
 	void BeginFrame();
 	void Update(float deltaSeconds);
@@ -39,6 +43,7 @@ public:
 	//IO
 	void DoKeyDown(unsigned char keyCode);
 	void DoKeyRelease(unsigned char keyCode);
+	void DoChar(char charCode);
 
 //DEBUG
 	void ToggleDebugView();
@@ -54,7 +59,8 @@ private:
 	bool m_flagRunning = false;
 	float m_screenWidth;
 	float m_screenHeight;
-
+	Camera* m_mainCamera;
+	Shader* m_shader;
 	RNG* m_rng = nullptr;
 
 	Vec2 m_cursor;

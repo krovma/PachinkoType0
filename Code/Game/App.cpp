@@ -1,4 +1,8 @@
+#define WIN32_LEAN_AND_MEAN		// Always #define this before #including <windows.h>
+#include <windows.h>			// #include this (massive, platform-specific) header in very few places
+
 #include "Game/App.hpp"
+#include "Game/GameCommon.hpp"
 #include "Engine/Renderer/RenderContext.hpp"
 #include "Engine/Console/DevConsole.hpp"
 #include "Engine/Core/Time.hpp"
@@ -8,36 +12,50 @@ InputSystem* g_theInput = nullptr;
 RenderContext* g_theRenderer = nullptr;
 AudioSystem* g_theAudio = nullptr;
 DevConsole* g_theConsole = nullptr;
+
+extern HWND g_hWnd;
+
+//////////////////////////////////////////////////////////////////////////
+bool AppQuit_Callback(EventParam& param)
+{
+	UNUSED(param);
+	g_theApp->HandleQuitRequested();
+	return true;
+}
+//////////////////////////////////////////////////////////////////////////
 App::App()
 {
 }
-
+//////////////////////////////////////////////////////////////////////////
 App::~App()
 {
 	Shutdown();
 }
-
+//////////////////////////////////////////////////////////////////////////
 void App::Startup()
 {
 	g_theInput = new InputSystem();
-	g_theRenderer = new RenderContext();
+	g_theRenderer = new RenderContext(g_hWnd, RESOLUTION_WIDTH, RESOLUTION_HEIGHT);
 	g_theAudio = new AudioSystem();
 	g_theInput->StartUp();
 	g_theRenderer->Startup();
-	g_theConsole = new DevConsole(g_theRenderer, 32, 48);
+	g_theConsole = new DevConsole(g_theRenderer, 60, 76);
 	g_theConsole->Startup();
 	m_theGame = new Game();
 	m_theGame->Startup();
-	
-	g_theConsole->s_consoleFont = g_theRenderer->AcquireBitmapFontFromFile(
-		g_gameConfigs.GetString("consoleFont","SquirrelFixedFont").c_str());
-}
 
+	g_Event->SubscribeEventCallback("quit", AppQuit_Callback);
+}
+//////////////////////////////////////////////////////////////////////////
 void App::Shutdown()
 {
 	m_flagQuit = true;
 	if (m_theGame) {
 		delete m_theGame;
+		m_theGame = nullptr;
+	}
+	if (g_theConsole) {
+		delete g_theConsole;
 		m_theGame = nullptr;
 	}
 	if (g_theRenderer) {
@@ -55,7 +73,7 @@ void App::Shutdown()
 		g_theAudio = nullptr;
 	}
 }
-
+//////////////////////////////////////////////////////////////////////////
 void App::RunFrame()
 {
 	static double lastFrameTime = GetCurrentTimeSeconds();
@@ -85,25 +103,27 @@ void App::RunFrame()
 	++m_frameCount;
 	lastFrameTime = currentTime;
 }
-
+//////////////////////////////////////////////////////////////////////////
 bool App::HandleKeyPressed(unsigned char keyCode)
 {
-	if ('T' == keyCode) {
-		m_flagSlow = true;
-	} else if ('P' == keyCode) {
-		m_flagPaused = !m_flagPaused;
-	} else if (0x77 /*F8*/ == keyCode) {
-		delete m_theGame;
-		m_theGame = new Game();
-		m_theGame->Startup();
-	} else if (KEY_ESC == keyCode) {
-		HandleQuitRequested();
-	} else {
+	if (m_theGame->IsConsoleUp()) {
 		m_theGame->DoKeyDown(keyCode);
+	} else {
+		if ('T' == keyCode) {
+			m_flagSlow = true;
+		} else if ('P' == keyCode) {
+			m_flagPaused = !m_flagPaused;
+		} else if (0x77 /*F8*/ == keyCode) {
+			delete m_theGame;
+			m_theGame = new Game();
+			m_theGame->Startup();
+		} else {
+			m_theGame->DoKeyDown(keyCode);
+		}
 	}
 	return true;
 }
-
+//////////////////////////////////////////////////////////////////////////
 bool App::HandleKeyReleased(unsigned char keyCode)
 {
 	if (keyCode == 'T') {
@@ -113,9 +133,17 @@ bool App::HandleKeyReleased(unsigned char keyCode)
 	}
 	return true;
 }
-
+//////////////////////////////////////////////////////////////////////////
 bool App::HandleQuitRequested()
 {
 	m_flagQuit = true;
+	return true;
+}
+////////////////////////////////
+bool App::HandleChar(char charCode)
+{
+	if (m_theGame->IsConsoleUp()) {
+		m_theGame->DoChar(charCode);
+	}
 	return true;
 }

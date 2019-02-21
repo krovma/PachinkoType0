@@ -16,58 +16,56 @@ constexpr float CLIENT_ASPECT = 1.375f; // We are requesting a 1:1 aspect (squar
 HWND g_hWnd = nullptr;							// ...becomes WindowContext::m_windowHandle
 HDC g_displayDeviceContext = nullptr;			// ...becomes WindowContext::m_displayContext
 HGLRC g_openGLRenderingContext = nullptr;		// ...becomes RenderContext::m_apiRenderingContext
-const char* APP_NAME = "Pachinko Type:0";	// #ProgramTitle
+const char* APP_NAME = "Pachinko:Type 0";	// #ProgramTitle
 
 NamedStrings g_gameConfigs;
 
 
-												//-----------------------------------------------------------------------------------------------
-												// Handles Windows (Win32) messages/events; i.e. the OS is trying to tell us something happened.
-												// This function is called by Windows whenever we ask it for notifications
-												//
-												// #SD1ToDo: We will move this function to a more appropriate place later on...
-												//
+//-----------------------------------------------------------------------------------------------
+// Handles Windows (Win32) messages/events; i.e. the OS is trying to tell us something happened.
+// This function is called by Windows whenever we ask it for notifications
+//
+// #SD1ToDo: We will move this function to a more appropriate place later on...
+//
 LRESULT CALLBACK WindowsMessageHandlingProcedure(HWND windowHandle, UINT wmMessageCode, WPARAM wParam, LPARAM lParam)
 {
-	switch (wmMessageCode)
-	{
+	switch (wmMessageCode) {
 		// App close requested via "X" button, or right-click "Close Window" on task bar, or "Close" from system menu, or Alt-F4
-	case WM_CLOSE:
-	{
+	case WM_CLOSE: {
 		g_theApp->HandleQuitRequested();
 		return 0; // "Consumes" this message (tells Windows "okay, we handled it")
 	}
 
-	// Raw physical keyboard "key-was-just-depressed" event (case-insensitive, not translated)
-	case WM_KEYDOWN:
-	{
+				   // Raw physical keyboard "key-was-just-depressed" event (case-insensitive, not translated)
+	case WM_KEYDOWN: {
 		unsigned char asKey = (unsigned char)wParam;
 
 		g_theApp->HandleKeyPressed(asKey);
 		return 0;
 	}
 
-	// Raw physical keyboard "key-was-just-released" event (case-insensitive, not translated)
-	case WM_KEYUP:
-	{
-		unsigned char asKey = (unsigned char) wParam;
+					 // Raw physical keyboard "key-was-just-released" event (case-insensitive, not translated)
+	case WM_KEYUP: {
+		unsigned char asKey = (unsigned char)wParam;
 
 		g_theApp->HandleKeyReleased(asKey);
 		return 0;
 	}
+	case WM_CHAR: {
+		char asChar = (char)wParam;
+		g_theApp->HandleChar(asChar);
+		return 0;
 	}
+	}
+
 
 	// Send back to Windows any unhandled/unconsumed messages we want other apps to see (e.g. play/pause in music apps, etc.)
 	return DefWindowProc(windowHandle, wmMessageCode, wParam, lParam);
 }
 
 
-//-----------------------------------------------------------------------------------------------
-// #SD1ToDo: We will move this function to a more appropriate place later on...
-//
-void CreateOpenGLWindow(HINSTANCE applicationInstanceHandle, float clientAspect)
+void CreateAppWindow(HINSTANCE appInstanceHandle, float clientAspect)
 {
-	// Define a window style/class
 	WNDCLASSEX windowClassDescription;
 	memset(&windowClassDescription, 0, sizeof(windowClassDescription));
 	windowClassDescription.cbSize = sizeof(windowClassDescription);
@@ -76,7 +74,7 @@ void CreateOpenGLWindow(HINSTANCE applicationInstanceHandle, float clientAspect)
 	windowClassDescription.hInstance = GetModuleHandle(NULL);
 	windowClassDescription.hIcon = NULL;
 	windowClassDescription.hCursor = NULL;
-	windowClassDescription.lpszClassName = TEXT("Pachinko Type:0"); // #ProgramTitle
+	windowClassDescription.lpszClassName = TEXT("Protogame2D"); // #ProgramTitle
 	RegisterClassEx(&windowClassDescription);
 
 	// #SD1ToDo: Add support for fullscreen mode (requires different window style flags than windowed mode)
@@ -129,8 +127,10 @@ void CreateOpenGLWindow(HINSTANCE applicationInstanceHandle, float clientAspect)
 		windowRect.bottom - windowRect.top,
 		NULL,
 		NULL,
-		applicationInstanceHandle,
+		appInstanceHandle,
 		NULL);
+
+	GUARANTEE_OR_DIE(nullptr != g_hWnd, "Failed to create window\n");
 
 	ShowWindow(g_hWnd, SW_SHOW);
 	SetForegroundWindow(g_hWnd);
@@ -140,27 +140,8 @@ void CreateOpenGLWindow(HINSTANCE applicationInstanceHandle, float clientAspect)
 
 	HCURSOR cursor = LoadCursor(NULL, IDC_ARROW);
 	SetCursor(cursor);
-
-	PIXELFORMATDESCRIPTOR pixelFormatDescriptor;
-	memset(&pixelFormatDescriptor, 0, sizeof(pixelFormatDescriptor));
-	pixelFormatDescriptor.nSize = sizeof(pixelFormatDescriptor);
-	pixelFormatDescriptor.nVersion = 1;
-	pixelFormatDescriptor.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-	pixelFormatDescriptor.iPixelType = PFD_TYPE_RGBA;
-	pixelFormatDescriptor.cColorBits = 24;
-	pixelFormatDescriptor.cDepthBits = 24;
-	pixelFormatDescriptor.cAccumBits = 0;
-	pixelFormatDescriptor.cStencilBits = 8;
-
-	int pixelFormatCode = ChoosePixelFormat(g_displayDeviceContext, &pixelFormatDescriptor);
-	SetPixelFormat(g_displayDeviceContext, pixelFormatCode, &pixelFormatDescriptor);
-	g_openGLRenderingContext = wglCreateContext(g_displayDeviceContext);
-	wglMakeCurrent(g_displayDeviceContext, g_openGLRenderingContext);
-
-	// #SD1ToDo: move all OpenGL functions (including those below) to RenderContext.cpp (only!)
-	//glEnable(GL_BLEND);
-	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
+
 
 
 //-----------------------------------------------------------------------------------------------
@@ -173,14 +154,11 @@ void CreateOpenGLWindow(HINSTANCE applicationInstanceHandle, float clientAspect)
 void RunMessagePump()
 {
 	MSG queuedMessage;
-	for (;;)
-	{
+	while (true) {
 		const BOOL wasMessagePresent = PeekMessage(&queuedMessage, NULL, 0, 0, PM_REMOVE);
-		if (!wasMessagePresent)
-		{
+		if (!wasMessagePresent) {
 			break;
 		}
-
 		TranslateMessage(&queuedMessage);
 		DispatchMessage(&queuedMessage); // This tells Windows to call our "WindowsMessageHandlingProcedure" (a.k.a. "WinProc") function
 	}
@@ -192,18 +170,21 @@ void Startup(HINSTANCE applicationInstanceHandle)
 {
 	XmlElement* gameConfigXmlRoot = nullptr;
 	ParseXmlFromFile(gameConfigXmlRoot, "Data/GameConfig.xml");
-	if(gameConfigXmlRoot == nullptr) {
+	if (gameConfigXmlRoot == nullptr) {
 		ERROR_AND_DIE(Stringf("Cannot Find GameConfig.xml! Is the running path set to %s/Run?", APP_NAME));
 	}
 	g_gameConfigs.PopulateFromXmlElement(*gameConfigXmlRoot);
 
-	CreateOpenGLWindow(applicationInstanceHandle, CLIENT_ASPECT);
-
-	g_Event = new EventSystem();
-	g_Event->Startup();
+	CreateAppWindow(applicationInstanceHandle, CLIENT_ASPECT);
 
 	g_theApp = new App();
 	g_theApp->Startup();
+
+
+
+	//g_Event = new EventSystem();
+	//g_Event->Startup();
+
 }
 
 
@@ -227,11 +208,10 @@ int WINAPI WinMain(HINSTANCE applicationInstanceHandle, HINSTANCE, LPSTR command
 	Startup(applicationInstanceHandle);
 
 	// Program main loop; keep running frames until it's time to quit
-	while (!g_theApp->IsQuitting())
-	{
+	while (!g_theApp->IsQuitting()) {
 		RunMessagePump();
 		g_theApp->RunFrame();
-		SwapBuffers(g_displayDeviceContext);
+		//SwapBuffers(g_displayDeviceContext);
 		//Sleep(16);// Fake 60fps
 	}
 

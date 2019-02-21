@@ -48,4 +48,9 @@
       <Filter>Data</Filter>
     </Xml>
   </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="..\..\Run\Data\Shaders\unlit.hlsl">
+      <Filter>Data</Filter>
+    </FxCompile>
+  </ItemGroup>
 </Project>

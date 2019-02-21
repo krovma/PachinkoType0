@@ -4,11 +4,12 @@
 #include "Game//Entity.hpp"
 #include "Engine/Math/MathUtils.hpp"
 #include "Engine/Renderer/Camera.hpp"
-#include "Engine/Renderer/Texture.hpp"
+#include "Engine/Renderer/Texture2D.hpp"
 #include "Engine/Audio/AudioSystem.hpp"
 #include "Engine/Renderer/SpriteSheet.hpp"
 #include "Engine/Renderer/SpriteAnimationDef.hpp"
 #include "Engine/Renderer/BitmapFont.hpp"
+#include "Engine/Renderer/Shader.hpp"
 #include "Engine/Math/MathUtils.hpp"
 #include "Engine/Core/Image.hpp"
 #include "Engine/Console/DevConsole.hpp"
@@ -19,7 +20,6 @@
 #include "Engine/Physics/Rigidbody2D.hpp"
 #include "Engine/Physics/AABBCollider2D.hpp"
 #include "Engine/Physics/DiskCollider2D.hpp"
-
 
 //////////////////////////////////////////////////////////////////////////
 //Delete these globals
@@ -50,6 +50,11 @@ void Game::Startup()
 
 	m_cursor = Vec2(137.5f/2.f, 50);
 	m_cursorVelocity = Vec2::ZERO;
+
+	m_mainCamera = new Camera(Vec2(0, 0), Vec2(137.5f, 100.f));
+	m_shader = g_theRenderer->AcquireShaderFromFile("Data/Shaders/unlit.hlsl");
+	m_mainCamera->SetOrthoView(Vec2(0, 0), Vec2(137.5f, 100.f));
+	DevConsole::s_consoleFont = g_theRenderer->AcquireBitmapFontFromFile(g_gameConfigs.GetString("consoleFont", "SquirrelFixedFont").c_str());
 }
 
 void Game::BeginFrame()
@@ -61,6 +66,7 @@ void Game::BeginFrame()
 
 void Game::Update(float deltaSeconds)
 {
+	g_theConsole->Update(deltaSeconds);
 	m_upSeconds += deltaSeconds;
 	m_cursorVelocity.x = Clamp(m_cursorVelocity.x, -50.f, 50.f);
 	m_cursorVelocity.y = Clamp(m_cursorVelocity.y, -50.f, 50.f);
@@ -93,10 +99,11 @@ void Game::Update(float deltaSeconds)
 
 void Game::Render() const
 {
-	Camera cam(Vec2(0, 0), Vec2(137.5f, 100.f));
-	g_theRenderer->ClearScreen(Rgba(0.f, 0.f, 0.f));
-	g_theRenderer->BeginCamera(cam);
-
+	RenderTargetView* renderTarget = g_theRenderer->GetFrameColorTarget();
+	m_mainCamera->SetRenderTarget(renderTarget);
+	g_theRenderer->BeginCamera(*m_mainCamera);
+	g_theRenderer->ClearColorTarget(Rgba(0.f, 0.f, 0.f));
+	g_theRenderer->BindShader(m_shader);
 	_RenderDebugInfo(false);
 	//Render cursor here
 	std::vector<Vertex_PCU> verts;
@@ -108,11 +115,11 @@ void Game::Render() const
 		Vec2(cursorBox.Max.x, cursorBox.Min.y),
 		0.2f, Rgba::LIME
 	);
-	g_theRenderer->BindTexture(nullptr);
+	g_theRenderer->BindTextureView(0, nullptr);
 	g_theRenderer->DrawVertexArray(verts.size(), verts);
 	_RenderDebugInfo(true);
 	verts.clear();
-	g_theRenderer->BindTexture(DevConsole::s_consoleFont->GetFontTexture());
+	g_theRenderer->BindTextureView(0, DevConsole::s_consoleFont->GetFontTexture());
 	std::string info = Stringf("Obj: %u Mass:%s Bounce: %.2f Friction: %.2f", m_entites.size()
 		, m_autoMass ? "[A]uto" : Stringf(" %.2f",m_defaultMass).c_str(),
 		m_defaultBounce, 1.f - m_defaultSmooth);
@@ -126,7 +133,7 @@ void Game::Render() const
 	g_theRenderer->DrawVertexArray(verts.size(), verts);
 
 	g_theConsole->RenderConsole();
-	g_theRenderer->EndCamera(cam);
+	g_theRenderer->EndCamera(*m_mainCamera);
 }
 
 void Game::_RenderDebugInfo(bool afterRender) const
@@ -281,10 +288,33 @@ void Game::SetScreenSize(float width, float height)
 
 void Game::DoKeyDown(unsigned char keyCode)
 {
-	if (keyCode == KEY_A) {
-		m_autoMass = !m_autoMass;
+	if (IsConsoleUp()) {
+		if (keyCode == KEY_ESC) {
+			g_theConsole->KeyPress(CONSOLE_ESC);
+		} else if (keyCode == KEY_ENTER) {
+			g_theConsole->KeyPress(CONSOLE_ENTER);
+		} else if (keyCode == KEY_BACKSPACE) {
+			g_theConsole->KeyPress(CONSOLE_BACKSPACE);
+		} else if (keyCode == KEY_LEFTARROW) {
+			g_theConsole->KeyPress(CONSOLE_LEFT);
+		} else if (keyCode == KEY_RIGHTARROW) {
+			g_theConsole->KeyPress(CONSOLE_RIGHT);
+		} else if (keyCode == KEY_UPARROW) {
+			g_theConsole->KeyPress(CONSOLE_UP);
+		} else if (keyCode == KEY_DOWNARROW) {
+			g_theConsole->KeyPress(CONSOLE_DOWN);
+		} else if (keyCode == KEY_DELETE) {
+			g_theConsole->KeyPress(CONSOLE_DELETE);
+		} else if (keyCode == KEY_F6) {
+			g_Event->Trigger("test", g_gameConfigs);
+			//g_theConsole->RunCommandString("Test name=F6 run=true");
+		} else if (keyCode == KEY_F1) {
+			g_Event->Trigger("random");
+		}
+		return;
 	}
 
+	//////////////////////////////////////////////////////////////////////////
 	if (keyCode == KEY_SLASH) {
 		if (g_theConsole->GetConsoleMode() == CONSOLE_OFF) {
 			g_theConsole->SetConsoleMode(CONSOLE_PASSIVE);
@@ -292,12 +322,12 @@ void Game::DoKeyDown(unsigned char keyCode)
 			g_theConsole->SetConsoleMode(CONSOLE_OFF);
 		}
 	}
-	if (keyCode == KEY_F6) {
-		g_Event->Trigger("Test", g_gameConfigs);
-		g_theConsole->RunCommandString("Test name=F6 run=true");
-	}
 
+	//////////////////////////////////////////////////////////////////////////
 	if (!m_isSelecting) {
+		if (keyCode == KEY_A) {
+			m_autoMass = !m_autoMass;
+		}
 		if (keyCode == KEY_F1) {
 			_SpawnBox(m_cursor, PHSX_SIM_STATIC);
 		}
@@ -385,6 +415,9 @@ void Game::DoKeyDown(unsigned char keyCode)
 
 void Game::DoKeyRelease(unsigned char keyCode)
 {
+	if (IsConsoleUp())
+		return;
+
 	if (keyCode == KEY_UPARROW) {
 		m_cursorVelocity -= Vec2(0.f, 50.f);
 	}
@@ -402,4 +435,12 @@ void Game::DoKeyRelease(unsigned char keyCode)
 void Game::ToggleDebugView()
 {
 	m_flagDebug = !m_flagDebug;
+}
+
+////////////////////////////////
+void Game::DoChar(char charCode)
+{
+	if (!IsConsoleUp())
+		return;
+	g_theConsole->Input(charCode);
 }
