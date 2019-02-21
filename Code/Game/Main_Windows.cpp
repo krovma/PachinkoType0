@@ -7,7 +7,7 @@
 #include "Game/App.hpp"
 #include "Engine/Event/EventSystem.hpp"
 
-constexpr float CLIENT_ASPECT = 1.f; // We are requesting a 1:1 aspect (square) window area
+constexpr float CLIENT_ASPECT = 1.375f; // We are requesting a 1:1 aspect (square) window area
 
 
 									  //-----------------------------------------------------------------------------------------------

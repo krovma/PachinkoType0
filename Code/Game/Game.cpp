@@ -33,7 +33,7 @@ Game::Game()
 	m_rng = new RNG();
 	m_rng->Init();
 	m_flagRunning = true;
-	SetScreenSize(100, 100);
+	SetScreenSize(137.5f, 100);
 }
 
 Game::~Game()
@@ -48,7 +48,7 @@ void Game::Startup()
 	g_GamePhysics = new PhysicsSystem();
 	g_GamePhysics->Startup();
 
-	m_cursor = Vec2(50, 50);
+	m_cursor = Vec2(137.5f/2.f, 50);
 	m_cursorVelocity = Vec2::ZERO;
 }
 
@@ -66,7 +66,7 @@ void Game::Update(float deltaSeconds)
 	m_cursorVelocity.y = Clamp(m_cursorVelocity.y, -50.f, 50.f);
 
 	m_cursor += m_cursorVelocity * deltaSeconds;
-	m_cursor.x = Clamp(m_cursor.x, 0.f, 100.f);
+	m_cursor.x = Clamp(m_cursor.x, 0.f, 137.5f);
 	m_cursor.y = Clamp(m_cursor.y, 0.f, 100.f);
 	if (m_isSelecting) {
 		m_entites[m_possessedEntityIndex]->SetPosition(m_cursor);
@@ -93,7 +93,7 @@ void Game::Update(float deltaSeconds)
 
 void Game::Render() const
 {
-	Camera cam(Vec2(0, 0), Vec2(100, 100));
+	Camera cam(Vec2(0, 0), Vec2(137.5f, 100.f));
 	g_theRenderer->ClearScreen(Rgba(0.f, 0.f, 0.f));
 	g_theRenderer->BeginCamera(cam);
 
