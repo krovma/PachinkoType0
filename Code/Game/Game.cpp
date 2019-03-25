@@ -190,7 +190,7 @@ void Game::Render() const
 		DebugRenderer::DrawText2D(AABB2(0, 960, 1375, 980), DevConsole::s_consoleFont, 20.f, info, 0.f, BitmapFont::ALIGHMENT_LEFT, Rgba::LIME);
 	}
 	//g_theRenderer->DrawVertexArray(verts.size(), verts);
-	info = Stringf("Type: %s Sim: %s", (m_generateOBB?"Box":"Capsule"), (m_generateStatic?"Static":"Dynamic"));
+	info = Stringf("Type[F1]: %s Sim[F2]: %s", (m_generateOBB?"Box":"Capsule"), (m_generateStatic?"Static":"Dynamic"));
 	DebugRenderer::DrawText2D(AABB2(0, 0, 1375, 20), DevConsole::s_consoleFont, 20.f, info, 0.f, BitmapFont::ALIGHMENT_LEFT, Rgba::CYAN);
 
 	_RenderDebugInfo(true);
@@ -451,6 +451,7 @@ void Game::EndFrame()
 void Game::Shutdown()
 {
 	g_GamePhysics->Shutdown();
+	delete m_mainCamera;
 	//delete m_shader;
 }
 
@@ -585,6 +586,7 @@ void Game::DoKeyDown(unsigned char keyCode)
 
 void Game::DoKeyRelease(unsigned char keyCode)
 {
+	UNUSED(keyCode);
 	if (IsConsoleUp())
 		return;
 }
