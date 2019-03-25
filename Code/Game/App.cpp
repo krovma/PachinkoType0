@@ -4,16 +4,17 @@
 #include "Game/App.hpp"
 #include "Game/GameCommon.hpp"
 #include "Engine/Renderer/RenderContext.hpp"
-#include "Engine/Console/DevConsole.hpp"
+#include "Engine/Develop/DevConsole.hpp"
 #include "Engine/Core/Time.hpp"
+#include "Engine/Develop/DebugRenderer.hpp"
 //////////////////////////////////////////////////////////////////////////
 App* g_theApp = nullptr;
 InputSystem* g_theInput = nullptr;
 RenderContext* g_theRenderer = nullptr;
 AudioSystem* g_theAudio = nullptr;
 DevConsole* g_theConsole = nullptr;
-
-extern HWND g_hWnd;
+WindowContext* g_theWindow;
+//extern HWND g_hWnd;
 
 //////////////////////////////////////////////////////////////////////////
 bool AppQuit_Callback(EventParam& param)
@@ -35,12 +36,15 @@ App::~App()
 void App::Startup()
 {
 	g_theInput = new InputSystem();
-	g_theRenderer = new RenderContext(g_hWnd, RESOLUTION_WIDTH, RESOLUTION_HEIGHT);
+	g_theRenderer = new RenderContext(g_theWindow->m_hWnd, RESOLUTION_WIDTH, RESOLUTION_HEIGHT);
 	g_theAudio = new AudioSystem();
 	g_theInput->StartUp();
 	g_theRenderer->Startup();
 	g_theConsole = new DevConsole(g_theRenderer, 60, 76);
 	g_theConsole->Startup();
+	
+	DebugRenderer::Startup(g_theRenderer);
+
 	m_theGame = new Game();
 	m_theGame->Startup();
 
@@ -54,6 +58,7 @@ void App::Shutdown()
 		delete m_theGame;
 		m_theGame = nullptr;
 	}
+	DebugRenderer::Shutdown();
 	if (g_theConsole) {
 		delete g_theConsole;
 		m_theGame = nullptr;
@@ -77,8 +82,10 @@ void App::Shutdown()
 void App::RunFrame()
 {
 	static double lastFrameTime = GetCurrentTimeSeconds();
+	g_theWindow->BeginFrame();
 	g_theInput->BeginFrame();
 	g_theAudio->BeginFrame();
+
 	if (!m_theGame->IsRunning()) {
 		m_flagQuit = true;
 		return;
@@ -94,11 +101,14 @@ void App::RunFrame()
 		dt /= 10.0;
 	}
 
+	DebugRenderer::Update((float)dt);
 	m_theGame->Update(float(dt));
 	m_theGame->Render();
+
 	m_theGame->EndFrame();
-	g_theInput->EndFrame();
 	g_theAudio->EndFrame();
+	g_theInput->EndFrame();
+	g_theWindow->EndFrame();
 
 	++m_frameCount;
 	lastFrameTime = currentTime;
@@ -133,6 +143,46 @@ bool App::HandleKeyReleased(unsigned char keyCode)
 	}
 	return true;
 }
+
+////////////////////////////////
+bool App::HandleMouseLeftButtonDown()
+{
+	m_theGame->DoMouseLeftButtonDown();
+	return true;
+}
+
+////////////////////////////////
+bool App::HandleMouseLeftButtonUp()
+{
+	m_theGame->DoMouseLeftButtonUp();
+	return true;
+}
+
+////////////////////////////////
+bool App::HandleMouseRightButtonDown()
+{
+	m_theGame->DoMouseRightButtonDown();
+	return true;
+}
+
+////////////////////////////////
+bool App::HandleMouseRightButtonUp()
+{
+	m_theGame->DoMouseRightButtonUp();
+	return true;
+}
+
+////////////////////////////////
+bool App::HandleMouseWheel(int delta)
+{
+	if (delta > 0) {
+		m_theGame->DoMouseWheelUp();
+	} else {
+		m_theGame->DoMouseWheelDown();
+	}
+	return true;
+}
+
 //////////////////////////////////////////////////////////////////////////
 bool App::HandleQuitRequested()
 {

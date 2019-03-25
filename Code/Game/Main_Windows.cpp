@@ -13,27 +13,22 @@ constexpr float CLIENT_ASPECT = 1.375f; // We are requesting a 1:1 aspect (squar
 									  //-----------------------------------------------------------------------------------------------
 									  // #SD1ToDo: Move each of these items to its proper place, once that place is established
 									  // 
-HWND g_hWnd = nullptr;							// ...becomes WindowContext::m_windowHandle
-HDC g_displayDeviceContext = nullptr;			// ...becomes WindowContext::m_displayContext
-HGLRC g_openGLRenderingContext = nullptr;		// ...becomes RenderContext::m_apiRenderingContext
-const char* APP_NAME = "Pachinko:Type 0";	// #ProgramTitle
+//HWND g_hWnd = nullptr;							// ...becomes WindowContext::m_windowHandle
+//HDC g_displayDeviceContext = nullptr;			// ...becomes WindowContext::m_displayContext
+//HGLRC g_openGLRenderingContext = nullptr;		// ...becomes RenderContext::m_apiRenderingContext
+const char* APP_NAME = "Pachinko Type: 0";	// #ProgramTitle
 
 NamedStrings g_gameConfigs;
 
-
-//-----------------------------------------------------------------------------------------------
-// Handles Windows (Win32) messages/events; i.e. the OS is trying to tell us something happened.
-// This function is called by Windows whenever we ask it for notifications
-//
-// #SD1ToDo: We will move this function to a more appropriate place later on...
-//
-LRESULT CALLBACK WindowsMessageHandlingProcedure(HWND windowHandle, UINT wmMessageCode, WPARAM wParam, LPARAM lParam)
+bool WindowsMessageHandlingProcedure(void *hWnd, unsigned int wmMessageCode, unsigned int wParam, unsigned int lParam)
 {
+	UNUSED(lParam);
+	UNUSED(hWnd);
 	switch (wmMessageCode) {
 		// App close requested via "X" button, or right-click "Close Window" on task bar, or "Close" from system menu, or Alt-F4
 	case WM_CLOSE: {
 		g_theApp->HandleQuitRequested();
-		return 0; // "Consumes" this message (tells Windows "okay, we handled it")
+		return true; // "Consumes" this message (tells Windows "okay, we handled it")
 	}
 
 				   // Raw physical keyboard "key-was-just-depressed" event (case-insensitive, not translated)
@@ -41,7 +36,7 @@ LRESULT CALLBACK WindowsMessageHandlingProcedure(HWND windowHandle, UINT wmMessa
 		unsigned char asKey = (unsigned char)wParam;
 
 		g_theApp->HandleKeyPressed(asKey);
-		return 0;
+		return true;
 	}
 
 					 // Raw physical keyboard "key-was-just-released" event (case-insensitive, not translated)
@@ -49,21 +44,47 @@ LRESULT CALLBACK WindowsMessageHandlingProcedure(HWND windowHandle, UINT wmMessa
 		unsigned char asKey = (unsigned char)wParam;
 
 		g_theApp->HandleKeyReleased(asKey);
-		return 0;
+		return true;
 	}
 	case WM_CHAR: {
 		char asChar = (char)wParam;
 		g_theApp->HandleChar(asChar);
-		return 0;
+		return true;
 	}
+	case WM_LBUTTONDOWN:
+	{
+		g_theApp->HandleMouseLeftButtonDown();
+		return true;
+	}
+	case WM_LBUTTONUP:
+	{
+		g_theApp->HandleMouseLeftButtonUp();
+		return true;
+	}
+	case WM_RBUTTONDOWN:
+	{
+		g_theApp->HandleMouseRightButtonDown();
+		return true;
+	}
+	case WM_RBUTTONUP:
+	{
+		g_theApp->HandleMouseRightButtonUp();
+		return true;
+	}
+	case WM_MOUSEWHEEL:{
+		g_theApp->HandleMouseWheel(
+			GET_WHEEL_DELTA_WPARAM(wParam)
+		);
+		return true;
 	}
 
+	}
 
 	// Send back to Windows any unhandled/unconsumed messages we want other apps to see (e.g. play/pause in music apps, etc.)
-	return DefWindowProc(windowHandle, wmMessageCode, wParam, lParam);
+	return false;
 }
 
-
+/*
 void CreateAppWindow(HINSTANCE appInstanceHandle, float clientAspect)
 {
 	WNDCLASSEX windowClassDescription;
@@ -130,7 +151,7 @@ void CreateAppWindow(HINSTANCE appInstanceHandle, float clientAspect)
 		appInstanceHandle,
 		NULL);
 
-	GUARANTEE_OR_DIE(nullptr != g_hWnd, "Failed to create window\n");
+	GUARANTEE_OR_DIE(nullptr!=g_hWnd, "Failed to create window\n");
 
 	ShowWindow(g_hWnd, SW_SHOW);
 	SetForegroundWindow(g_hWnd);
@@ -154,7 +175,7 @@ void CreateAppWindow(HINSTANCE appInstanceHandle, float clientAspect)
 void RunMessagePump()
 {
 	MSG queuedMessage;
-	while (true) {
+	while(true) {
 		const BOOL wasMessagePresent = PeekMessage(&queuedMessage, NULL, 0, 0, PM_REMOVE);
 		if (!wasMessagePresent) {
 			break;
@@ -163,10 +184,10 @@ void RunMessagePump()
 		DispatchMessage(&queuedMessage); // This tells Windows to call our "WindowsMessageHandlingProcedure" (a.k.a. "WinProc") function
 	}
 }
-
+*/
 
 //-------------------------------------------------------------------------------
-void Startup(HINSTANCE applicationInstanceHandle)
+void Startup()
 {
 	XmlElement* gameConfigXmlRoot = nullptr;
 	ParseXmlFromFile(gameConfigXmlRoot, "Data/GameConfig.xml");
@@ -175,13 +196,10 @@ void Startup(HINSTANCE applicationInstanceHandle)
 	}
 	g_gameConfigs.PopulateFromXmlElement(*gameConfigXmlRoot);
 
-	CreateAppWindow(applicationInstanceHandle, CLIENT_ASPECT);
-
+	g_theWindow = new WindowContext();
+	g_theWindow->Create(APP_NAME, CLIENT_ASPECT, 0.9f, WindowsMessageHandlingProcedure);
 	g_theApp = new App();
 	g_theApp->Startup();
-
-
-
 	//g_Event = new EventSystem();
 	//g_Event->Startup();
 
@@ -197,6 +215,9 @@ void Shutdown()
 
 	delete g_Event;
 	g_Event = nullptr;
+
+	delete g_theWindow;
+	g_theWindow = nullptr;
 }
 
 
@@ -204,12 +225,12 @@ void Shutdown()
 int WINAPI WinMain(HINSTANCE applicationInstanceHandle, HINSTANCE, LPSTR commandLineString, int)
 {
 	UNUSED(commandLineString);
-
-	Startup(applicationInstanceHandle);
+	UNUSED(applicationInstanceHandle);
+	Startup();
 
 	// Program main loop; keep running frames until it's time to quit
 	while (!g_theApp->IsQuitting()) {
-		RunMessagePump();
+		//RunMessagePump();
 		g_theApp->RunFrame();
 		//SwapBuffers(g_displayDeviceContext);
 		//Sleep(16);// Fake 60fps

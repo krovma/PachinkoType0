@@ -198,6 +198,7 @@
   </ItemGroup>
   <ItemGroup>
     <Xml Include="..\..\Run\Data\GameConfig.xml" />
+    <Xml Include="..\..\Run\Data\Shaders\unlit.shader.xml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Engine\Code\Engine\Engine.vcxproj">

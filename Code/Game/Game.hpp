@@ -6,7 +6,7 @@
 #include "Engine/Core/RNG.hpp"
 #include "Engine/Physics/PhysicsSystem.hpp"
 #include "Game/GameCommon.hpp"
-#include "Engine/Console/DevConsole.hpp"
+#include "Engine/Develop/DevConsole.hpp"
 
 extern RenderContext* g_theRenderer;
 extern InputSystem* g_theInput;
@@ -44,6 +44,13 @@ public:
 	void DoKeyDown(unsigned char keyCode);
 	void DoKeyRelease(unsigned char keyCode);
 	void DoChar(char charCode);
+	bool DoMouseLeftButtonDown();
+	bool DoMouseLeftButtonUp();
+	bool DoMouseRightButtonDown();
+	bool DoMouseRightButtonUp();
+	bool DoMouseWheelDown();
+	bool DoMouseWheelUp();
+
 
 //DEBUG
 	void ToggleDebugView();
@@ -53,8 +60,12 @@ private:
 	void _possessNearest();
 	void _setPossessInfo(int index);
 	void _SpawnBox(const Vec2& position, PhysicsSimulationType simulation);
+	void _SpawnOBB(Vec2& start, Vec2& end, PhysicsSimulationType simulation);
 	void _SpawnDisk(Vec2& position, PhysicsSimulationType simulation);
+	void _SpawnCapsule(Vec2& start, Vec2& end, PhysicsSimulationType simulation);
+	void _ClampCamera();
 
+	void _RelocateCamera();
 private:
 	bool m_flagRunning = false;
 	float m_screenWidth;
@@ -64,6 +75,11 @@ private:
 	RNG* m_rng = nullptr;
 
 	Vec2 m_cursor;
+
+	Vec2 m_cursorPosA;
+	Vec2 m_cursorPosB;
+	bool m_mouseDown = false;
+
 	Vec2 m_cursorVelocity;
 	bool m_autoMass = true;
 	float m_defaultMass = 1.f;
@@ -72,6 +88,14 @@ private:
 	int m_possessedEntityIndex;
 	bool m_isSelecting = false;
 	const int m_firstPossessable = 0;
+	bool m_generateOBB = false;
+	bool m_generateStatic = false;
+
+	AABB2 m_worldBound;
+	Vec2 m_cameraCenter;
+	Vec2 m_cameraExtend;
+	float m_currentScale = 1.f;
+
 
 	std::vector<Entity*> m_entites;
 //DEBUG

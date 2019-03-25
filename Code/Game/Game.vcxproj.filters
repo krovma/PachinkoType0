@@ -47,10 +47,11 @@
     <Xml Include="..\..\Run\Data\GameConfig.xml">
       <Filter>Data</Filter>
     </Xml>
+    <Xml Include="..\..\Run\Data\Shaders\unlit.shader.xml">
+      <Filter>Data</Filter>
+    </Xml>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\..\Run\Data\Shaders\unlit.hlsl">
-      <Filter>Data</Filter>
-    </FxCompile>
+    <Text Include="..\..\Run\Data\Shaders\unlit.hlsl" />
   </ItemGroup>
 </Project>

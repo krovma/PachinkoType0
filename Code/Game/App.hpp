@@ -2,6 +2,7 @@
 #include "Engine/Math/Vec2.hpp"
 #include "Game/Game.hpp"
 #include "Engine/Input/InputSystem.hpp"
+#include "Engine/Core/WindowContext.hpp"
 #include "Engine/Audio/AudioSystem.hpp"
 
 //////////////////////////////////////////////////////////////////////////
@@ -18,6 +19,13 @@ public:
 	bool IsQuitting() { return m_flagQuit; }
 	bool HandleKeyPressed(unsigned char keyCode);
 	bool HandleKeyReleased(unsigned char keyCode);
+	bool HandleMouseLeftButtonDown();
+	bool HandleMouseLeftButtonUp();
+	bool HandleMouseRightButtonDown();
+	bool HandleMouseRightButtonUp();
+	bool HandleMouseWheel(int delta);
+
+
 	bool HandleQuitRequested();
 	bool HandleChar(char charCode);
 
@@ -33,5 +41,6 @@ private:
 };
 
 extern App* g_theApp;
-extern InputSystem *g_theInput;
-extern AudioSystem *g_theAudio;
+extern InputSystem* g_theInput;
+extern AudioSystem* g_theAudio;
+extern WindowContext* g_theWindow;

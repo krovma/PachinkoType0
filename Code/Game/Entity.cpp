@@ -22,14 +22,12 @@ void Entity::Render() const
 
 bool Entity::IsOffScreen() const
 {
-	float screenW, screenH;
-	m_theGame->GetScreenSize(&screenW, &screenH);
-	
+	float screenW = 200.f, screenH = 200.f;
 	return
-		FloatGt(m_transform.Position.x, m_radiusCosmetic + screenW)
-		|| FloatGt(m_transform.Position.y, m_radiusCosmetic + screenH)
-		|| FloatLt(m_transform.Position.x, -m_radiusCosmetic)
-		|| FloatLt(m_transform.Position.y, -m_radiusCosmetic);//not exactly
+		FloatGt(m_transform.Position.x,  screenW)
+		|| FloatGt(m_transform.Position.y, screenH)
+		|| FloatLt(m_transform.Position.x, -50.f)
+		|| FloatLt(m_transform.Position.y, -50.f);//not exactly
 
 }
 
