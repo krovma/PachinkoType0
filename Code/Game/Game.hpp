@@ -64,7 +64,7 @@ private:
 	void _SpawnDisk(Vec2& position, PhysicsSimulationType simulation);
 	void _SpawnCapsule(Vec2& start, Vec2& end, PhysicsSimulationType simulation);
 	void _ClampCamera();
-
+	Rigidbody2D* _GetNearestRigidBodyAt(const Vec2& screen);
 	void _RelocateCamera();
 private:
 	bool m_flagRunning = false;

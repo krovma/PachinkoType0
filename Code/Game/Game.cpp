@@ -103,16 +103,12 @@ void Game::Update(float deltaSeconds)
 
 	m_cursor += m_cursorVelocity * deltaSeconds;
 	*/
-	 {
+	{
 		m_cursor = Vec2(g_theWindow->GetClientMousePosition());
 		m_cursor /= 0.971f;
 		m_cursor = m_mainCamera->ClientToWorld(m_cursor);
 	}
-	DebugRenderer::DrawText2D(
-		AABB2(Vec2(500,500), Vec2(600,600)
-		),
-		DevConsole::s_consoleFont, 20.f, Stringf("%g, %g", m_cursor.x, m_cursor.y), 0.f, BitmapFont::ALIGHMENT_LEFT
-	);
+
 	if (m_isSelecting) {
 		m_entites[m_possessedEntityIndex]->SetPosition(m_cursor);
 	}
@@ -148,7 +144,18 @@ void Game::Update(float deltaSeconds)
 	DebugRenderer::DrawLine2D(m_mainCamera->WorldToClient(m_worldBound.GetTopRight()),		m_mainCamera->WorldToClient(m_worldBound.GetTopLeft()), 25.f, 0.f);
 	DebugRenderer::DrawLine2D(m_mainCamera->WorldToClient(m_worldBound.GetTopLeft()),		m_mainCamera->WorldToClient(m_worldBound.GetBottomLeft()), 25.f, 0.f);
 
-
+	if (!m_isSelecting) {
+		Rigidbody2D* nearest = _GetNearestRigidBodyAt(m_cursor);
+		if (nearest != nullptr) {
+			std::string info = Stringf("Mass: %g Kg Inertia: %g Res: %g", nearest->GetMassKg(), nearest->GetRotationalInertia(), nearest->GetBounciness());
+			DebugRenderer::DrawText2D(AABB2(0, 960, 1375, 980), DevConsole::s_consoleFont, 20.f, info, 0.f, BitmapFont::ALIGHMENT_LEFT, Rgba::LIME);
+			info = Stringf("v: <%g, %g> a:<%g, %g>", nearest->GetVelocity().x, nearest->GetVelocity().y
+				, nearest->GetAcceleration().x, nearest->GetAcceleration().y);
+			DebugRenderer::DrawText2D(AABB2(0, 940, 1375, 960), DevConsole::s_consoleFont, 20.f, info, 0.f, BitmapFont::ALIGHMENT_LEFT, Rgba::LIME);
+			info = Stringf("aV: %g aA: %g", nearest->GetAngularSpeed(), nearest->GetAngularAcceleration());
+			DebugRenderer::DrawText2D(AABB2(0, 920, 1375, 940), DevConsole::s_consoleFont, 20.f, info, 0.f, BitmapFont::ALIGHMENT_LEFT, Rgba::LIME);
+		}
+	}
 }
 
 void Game::Render() const
@@ -265,9 +272,7 @@ void Game::_setPossessInfo(int index)
 {
 	//static float worldToClientSpaceScaler = g_theRenderer->GetResolution().x / 137.5f;
 
-	DebugRenderer::DrawText2D(AABB2(100, 100, 200, 200), DevConsole::s_consoleFont, 25, Stringf("%g, %g", m_cursor.x, m_cursor.y), 2.f, BitmapFont::ALIGHMENT_LEFT);
 	m_cursor = m_entites[index]->GetPosition();
-	DebugRenderer::DrawText2D(AABB2(100, 150, 200, 250), DevConsole::s_consoleFont, 25, Stringf("%g, %g", m_cursor.x, m_cursor.y), 2.f, BitmapFont::ALIGHMENT_LEFT);
 
 	Vec2 clientPos = m_mainCamera->WorldToClient(m_cursor) * 0.971f;
 
@@ -422,6 +427,44 @@ void Game::_ClampCamera()
 		m_cameraCenter.y = m_worldBound.Max.y - m_cameraExtend.y;
 	}
 	m_mainCamera->SetCameraModel(Mat4::MakeTranslate2D(m_cameraCenter));
+}
+
+////////////////////////////////
+Rigidbody2D* Game::_GetNearestRigidBodyAt(const Vec2& pos)
+{
+	if (m_entites.size() <= 0) {
+		return nullptr;
+	}
+	float minDist2 = 9999999.f;
+	int closetEntityIndex = -999;
+	int size = (int)m_entites.size();
+	for (int i = m_firstPossessable; i < size; ++i) {
+		if (m_entites[i]->IsGarbage()) {
+			continue;
+		}
+		Entity* entity = m_entites[i];
+		Collider2D* col = (Collider2D*)entity->GetRigidbody()->GetCollider();
+		float dist2;
+		if (col->m_type == COLLIDER_OBB2) {
+			OBBCollider2D* t = (OBBCollider2D*)col;
+			Vec2 closestPoint = t->GetWorldShape().GetNearestPoint(m_cursor);
+			dist2 = GetDistanceSquare(m_cursor, closestPoint);
+			if (dist2 < minDist2) {
+				minDist2 = dist2;
+				closetEntityIndex = i;
+			}
+		} else if (col->m_type == COLLIDER_CAPSULE2) {
+			Vec2 closestPoint = ((CapsuleCollider2D*)col)->GetWorldShape().GetNearestPoint(m_cursor);
+			dist2 = GetDistanceSquare(m_cursor, closestPoint);
+			if (dist2 < minDist2) {
+				minDist2 = dist2;
+				closetEntityIndex = i;
+			}
+		}
+	}
+	if (closetEntityIndex < m_entites.size()) {
+		return m_entites[closetEntityIndex]->GetRigidbody();
+	}
 }
 
 ////////////////////////////////
