@@ -13,6 +13,7 @@ extern InputSystem* g_theInput;
 extern AudioSystem* g_theAudio;
 extern PhysicsSystem* g_GamePhysics;
 extern DevConsole* g_theConsole;
+
 class Camera;
 class Shader;
 class Entity;
@@ -20,6 +21,9 @@ class Entity;
 class Game
 {
 public:
+	friend void LoadMap(const char* path);
+	friend void SaveMap(const char* path);
+
 	Game();
 	~Game();
 
@@ -84,7 +88,9 @@ private:
 	bool m_autoMass = true;
 	float m_defaultMass = 1.f;
 	float m_defaultBounce = 1.f;
-	float m_defaultSmooth = 1.f;
+	float m_defaultFriction = 1.f;
+	float m_defaultLinearDrag = 0.f;
+	float m_defaultAngularDrag = 0.f;
 	int m_possessedEntityIndex;
 	bool m_isSelecting = false;
 	const int m_firstPossessable = 0;
@@ -102,3 +108,5 @@ private:
 	bool m_flagDebug = true;
 	float m_upSeconds = 0.f;
 };
+
+extern Game* g_theGame;

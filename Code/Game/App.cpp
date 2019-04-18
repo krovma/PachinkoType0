@@ -45,6 +45,11 @@ void App::Startup()
 	
 	DebugRenderer::Startup(g_theRenderer);
 
+	m_fixedClock = new Clock();
+	m_fixedClock->SetFPS(60.f);
+	m_gameClock = new Clock();
+	m_gameClock->SetFPS(60.f);
+
 	m_theGame = new Game();
 	m_theGame->Startup();
 
@@ -95,14 +100,11 @@ void App::RunFrame()
 	static double currentTime;
 	currentTime = GetCurrentTimeSeconds();
 	double dt = currentTime - lastFrameTime;
-	if (m_flagPaused) {
-		dt = 0.0;
-	} else if (m_flagSlow) {
-		dt /= 10.0;
-	}
+
+	g_theMasterClock->Step(dt);
 
 	DebugRenderer::Update((float)dt);
-	m_theGame->Update(float(dt));
+	m_theGame->Update(m_gameClock->GetFrameTime());
 	m_theGame->Render();
 
 	m_theGame->EndFrame();
@@ -121,8 +123,14 @@ bool App::HandleKeyPressed(unsigned char keyCode)
 	} else {
 		if ('T' == keyCode) {
 			m_flagSlow = true;
+			m_fixedClock->SetScale(0.1f);
 		} else if ('P' == keyCode) {
 			m_flagPaused = !m_flagPaused;
+			if (m_flagPaused) {
+				m_fixedClock->Pause();
+			} else {
+				m_fixedClock->Unpause();
+			}
 		} else if (0x77 /*F8*/ == keyCode) {
 			delete m_theGame;
 			m_theGame = new Game();
@@ -138,6 +146,7 @@ bool App::HandleKeyReleased(unsigned char keyCode)
 {
 	if (keyCode == 'T') {
 		m_flagSlow = false;
+		m_fixedClock->SetScale(1.f);
 	} else {
 		m_theGame->DoKeyRelease(keyCode);
 	}

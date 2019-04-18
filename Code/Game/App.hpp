@@ -4,6 +4,7 @@
 #include "Engine/Input/InputSystem.hpp"
 #include "Engine/Core/WindowContext.hpp"
 #include "Engine/Audio/AudioSystem.hpp"
+#include "Engine/Core/Clock.hpp"
 
 //////////////////////////////////////////////////////////////////////////
 class App
@@ -38,6 +39,19 @@ private:
 	bool m_flagPaused = false;
 	bool m_flagSlow = false;
 
+	Clock* m_gameClock = nullptr;
+	Clock* m_fixedClock = nullptr;
+
+public:
+	Clock* GetGameClock() const
+	{
+		return m_gameClock;
+	}
+
+	Clock* GetFixedClock() const
+	{
+		return m_fixedClock;
+	}
 };
 
 extern App* g_theApp;

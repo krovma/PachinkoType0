@@ -22,7 +22,9 @@
 #include "Engine/Physics/DiskCollider2D.hpp"
 #include "Engine/Develop/DebugRenderer.hpp"
 #include "Engine/Core/WindowContext.hpp"
+#include "Game/Map.hpp"
 #include <math.h>
+#include "App.hpp"
 
 ConstantBuffer *_buf;
 extern WindowContext* g_theWindow;
@@ -31,7 +33,21 @@ extern WindowContext* g_theWindow;
 PhysicsSystem* g_GamePhysics = nullptr;
 //////////////////////////////////////////////////////////////////////////
 PhysicsSimulationType _possessedSimType;
+Game* g_theGame = nullptr;
 
+static bool __save(NamedStrings& param)
+{
+	std::string path = param.GetString("file", "defaultMap.xml");
+	SaveMap(path.c_str());
+	return true;
+}
+
+static bool __load(NamedStrings& param)
+{
+	std::string path = param.GetString("file", "defaultMap.xml");
+	LoadMap(path.c_str());
+	return true;
+}
 
 Game::Game()
 {
@@ -39,6 +55,7 @@ Game::Game()
 	m_rng->Init();
 	m_flagRunning = true;
 	SetScreenSize(137.5f, 100);
+	g_theGame = this;
 }
 
 Game::~Game()
@@ -49,6 +66,8 @@ Game::~Game()
 void Game::Startup()
 {
 	g_Event->SubscribeEventCallback("Test", DevConsole::Command_Test);
+	g_Event->SubscribeEventCallback("save", __save);
+	g_Event->SubscribeEventCallback("load", __load);
 
 	g_GamePhysics = new PhysicsSystem();
 	g_GamePhysics->Startup();
@@ -112,7 +131,7 @@ void Game::Update(float deltaSeconds)
 	if (m_isSelecting) {
 		m_entites[m_possessedEntityIndex]->SetPosition(m_cursor);
 	}
-	g_GamePhysics->Update(deltaSeconds);
+	g_GamePhysics->Update(g_theApp->GetFixedClock()->GetFrameTime());
 	for (auto eachEntity : m_entites) {
 		if (eachEntity->IsOffScreen()) {
 			eachEntity->MarkGarbage();
@@ -149,11 +168,14 @@ void Game::Update(float deltaSeconds)
 		if (nearest != nullptr) {
 			std::string info = Stringf("Mass: %g Kg Inertia: %g Res: %g", nearest->GetMassKg(), nearest->GetRotationalInertia(), nearest->GetBounciness());
 			DebugRenderer::DrawText2D(AABB2(0, 960, 1375, 980), DevConsole::s_consoleFont, 20.f, info, 0.f, BitmapFont::ALIGHMENT_LEFT, Rgba::LIME);
-			info = Stringf("v: <%g, %g> a:<%g, %g>", nearest->GetVelocity().x, nearest->GetVelocity().y
-				, nearest->GetAcceleration().x, nearest->GetAcceleration().y);
+			info = Stringf("v: <%g, %g> a:<%g, %g> drag: %g", nearest->GetVelocity().x, nearest->GetVelocity().y
+				, nearest->GetAcceleration().x, nearest->GetAcceleration().y, nearest->GetLinearDrag());
 			DebugRenderer::DrawText2D(AABB2(0, 940, 1375, 960), DevConsole::s_consoleFont, 20.f, info, 0.f, BitmapFont::ALIGHMENT_LEFT, Rgba::LIME);
-			info = Stringf("aV: %g aA: %g", nearest->GetAngularSpeed(), nearest->GetAngularAcceleration());
+			info = Stringf("rot: %g aV: %g aA: %g drag: %g", nearest->GetRotationDegrees(), nearest->GetAngularSpeed(), nearest->GetAngularAcceleration(), nearest->GetAngularDrag());
 			DebugRenderer::DrawText2D(AABB2(0, 920, 1375, 940), DevConsole::s_consoleFont, 20.f, info, 0.f, BitmapFont::ALIGHMENT_LEFT, Rgba::LIME);
+			info = Stringf("Restriction: x=%g y=%g rot=%g", nearest->GetRestriction().x, nearest->GetRestriction().y, nearest->GetRestriction().z);
+			DebugRenderer::DrawText2D(AABB2(0, 900, 1375, 920), DevConsole::s_consoleFont, 20.f, info, 0.f, BitmapFont::ALIGHMENT_LEFT, Rgba::LIME);
+
 		}
 	}
 }
@@ -184,17 +206,21 @@ void Game::Render() const
 		Vec2(cursorBox.Max.x, cursorBox.Min.y), 1.f, 0.f, Rgba::LIME);
 
 	//g_theRenderer->BindTextureViewWithSampler(0, DevConsole::s_consoleFont->GetFontTexture());
-	std::string info = Stringf("Obj: %u Mass:%s Bounce: %.2f Friction: %.2f", m_entites.size()
+	std::string info = Stringf("Obj: %u Mass NM:%s Bounce ,.: %.2f Friction ;\': %.2f", m_entites.size()
 		, m_autoMass ? "[A]uto" : Stringf(" %.2f",m_defaultMass).c_str(),
-		m_defaultBounce, 1.f - m_defaultSmooth);
+		m_defaultBounce, m_defaultFriction);
 	DebugRenderer::DrawText2D(AABB2(0, 980, 1375, 1000), DevConsole::s_consoleFont, 20.f, info, 0.f, BitmapFont::ALIGHMENT_LEFT, Rgba::WHITE);
 	//DevConsole::s_consoleFont->AddVertsForText2D(verts, Vec2(0, 98.f), 1.5f, info, Rgba::SILVER);
 	if (m_isSelecting) {
 		Rigidbody2D* rb = m_entites[m_possessedEntityIndex]->GetRigidbody();
-		info = Stringf("Selected>> Mass: %.2f Bounce: %.2f Friction: %.2f"
-			, rb->GetMassKg(), rb->GetBounciness(), 1.f - rb->GetSmoothness());
+		info = Stringf("Selected>> Mass: %.2f Bounce: %.2f Friction: %.2f lDrag: %.2f aDrag: %.2f"
+			, rb->GetMassKg(), rb->GetBounciness(), rb->GetFriction(), rb->GetLinearDrag(), rb->GetAngularDrag());
 		//DevConsole::s_consoleFont->AddVertsForText2D(verts, Vec2(0, 96.f), 1.5f, info, Rgba::LIME);
 		DebugRenderer::DrawText2D(AABB2(0, 960, 1375, 980), DevConsole::s_consoleFont, 20.f, info, 0.f, BitmapFont::ALIGHMENT_LEFT, Rgba::LIME);
+	
+		info = Stringf("Restriction: x=%g y=%g rot=%g", rb->GetRestriction().x, rb->GetRestriction().y, rb->GetRestriction().z);
+		DebugRenderer::DrawText2D(AABB2(0, 940, 1375, 960), DevConsole::s_consoleFont, 20.f, info, 0.f, BitmapFont::ALIGHMENT_LEFT, Rgba::LIME);
+
 	}
 	//g_theRenderer->DrawVertexArray(verts.size(), verts);
 	info = Stringf("Type[F1]: %s Sim[F2]: %s", (m_generateOBB?"Box":"Capsule"), (m_generateStatic?"Static":"Dynamic"));
@@ -314,7 +340,7 @@ void Game::_SpawnBox(const Vec2& position, PhysicsSimulationType simulation)
 		createdRb->SetMassKg(m_defaultMass);
 	}
 	createdRb->SetBounciness(m_defaultBounce);
-	createdRb->SetSmoothness(m_defaultSmooth);
+	createdRb->SetFriction(m_defaultFriction);
 	createdRb->SetSimulationType(simulation);
 	createdEntity->BindRigidbody(createdRb);
 	m_entites.push_back(createdEntity);
@@ -348,7 +374,7 @@ void Game::_SpawnOBB(Vec2& start, Vec2& end, PhysicsSimulationType simulation)
 		createdRb->SetMassKg(m_defaultMass);
 	}
 	createdRb->SetBounciness(m_defaultBounce);
-	createdRb->SetSmoothness(m_defaultSmooth);
+	createdRb->SetFriction(m_defaultFriction);
 	createdRb->SetSimulationType(simulation);
 	createdEntity->BindRigidbody(createdRb);
 	m_entites.push_back(createdEntity);
@@ -375,7 +401,7 @@ void Game::_SpawnDisk(Vec2& position, PhysicsSimulationType simulation)
 		createdRb->SetMassKg(m_defaultMass);
 	}
 	createdRb->SetBounciness(m_defaultBounce);
-	createdRb->SetSmoothness(m_defaultSmooth);
+	createdRb->SetFriction(m_defaultFriction);
 	createdRb->SetSimulationType(simulation);
 	createdEntity->BindRigidbody(createdRb);
 	m_entites.push_back(createdEntity);
@@ -404,7 +430,7 @@ void Game::_SpawnCapsule(Vec2& start, Vec2& end, PhysicsSimulationType simulatio
 		createdRb->SetMassKg(m_defaultMass);
 	}
 	createdRb->SetBounciness(m_defaultBounce);
-	createdRb->SetSmoothness(m_defaultSmooth);
+	createdRb->SetFriction(m_defaultFriction);
 	createdRb->SetSimulationType(simulation);
 	createdEntity->BindRigidbody(createdRb);
 	m_entites.push_back(createdEntity);
@@ -432,6 +458,7 @@ void Game::_ClampCamera()
 ////////////////////////////////
 Rigidbody2D* Game::_GetNearestRigidBodyAt(const Vec2& pos)
 {
+	UNUSED(pos)
 	if (m_entites.size() <= 0) {
 		return nullptr;
 	}
@@ -598,6 +625,71 @@ void Game::DoKeyDown(unsigned char keyCode)
 			m_defaultBounce = Clamp(m_defaultBounce + 0.1f, 0.f, 1.f);
 		}
 	}
+	if (keyCode == KEY_SEMICOLON) {
+		if (m_isSelecting) {
+			Rigidbody2D* selected = m_entites[m_possessedEntityIndex]->GetRigidbody();
+			selected->SetFriction(Clamp(selected->GetFriction() - 0.1f, 0.f, 1.f));
+		} else {
+			m_defaultFriction = Clamp(m_defaultFriction - 0.1f, 0.f, 1.f);
+		}
+	}
+	if (keyCode == KEY_QUOTE) {
+		if (m_isSelecting) {
+			Rigidbody2D* selected = m_entites[m_possessedEntityIndex]->GetRigidbody();
+			selected->SetFriction(Clamp(selected->GetFriction() + 0.1f, 0.f, 1.f));
+		} else {
+			m_defaultFriction = Clamp(m_defaultFriction + 0.1f, 0.f, 1.f);
+		}
+	}
+
+	if (keyCode == KEY_PLUS) {
+		if (m_isSelecting) {
+			Rigidbody2D* selected = m_entites[m_possessedEntityIndex]->GetRigidbody();
+			selected->SetLinearDrag(Clamp(selected->GetLinearDrag() + 0.1f, 0.f, 1.f));
+		} else {
+			m_defaultLinearDrag = Clamp(m_defaultLinearDrag + 0.1f, 0.f, 1.f);
+		}
+	}
+	if (keyCode == KEY_MINUS) {
+		if (m_isSelecting) {
+			Rigidbody2D* selected = m_entites[m_possessedEntityIndex]->GetRigidbody();
+			selected->SetLinearDrag(Clamp(selected->GetLinearDrag() - 0.1f, 0.f, 1.f));
+		} else {
+			m_defaultLinearDrag = Clamp(m_defaultLinearDrag - 0.1f, 0.f, 1.f);
+		}
+	}
+
+	if (keyCode == '0') {
+		if (m_isSelecting) {
+			Rigidbody2D* selected = m_entites[m_possessedEntityIndex]->GetRigidbody();
+			selected->SetAngularDrag(Clamp(selected->GetAngularDrag() + 0.1f, 0.f, 1.f));
+		} else {
+			m_defaultAngularDrag = Clamp(m_defaultAngularDrag + 0.1f, 0.f, 1.f);
+		}
+	}
+	if (keyCode == '9') {
+		if (m_isSelecting) {
+			Rigidbody2D* selected = m_entites[m_possessedEntityIndex]->GetRigidbody();
+			selected->SetAngularDrag(Clamp(selected->GetAngularDrag() - 0.1f, 0.f, 1.f));
+		} else {
+			m_defaultAngularDrag = Clamp(m_defaultAngularDrag - 0.1f, 0.f, 1.f);
+		}
+	}
+
+	if (keyCode == 'X' && m_isSelecting) {
+		Rigidbody2D* selected = m_entites[m_possessedEntityIndex]->GetRigidbody();
+		selected->SetXRestriction(1.f - selected->GetRestriction().x);
+	}
+	if (keyCode == 'Y' && m_isSelecting) {
+		Rigidbody2D* selected = m_entites[m_possessedEntityIndex]->GetRigidbody();
+		selected->SetYRestriction(1.f - selected->GetRestriction().y);
+
+	}
+	if (keyCode == 'Z' && m_isSelecting) {
+		Rigidbody2D* selected = m_entites[m_possessedEntityIndex]->GetRigidbody();
+		selected->SetZRestriction(1.f - selected->GetRestriction().z);
+	}
+
 
 	if (keyCode == KEY_W) {
 		m_cameraCenter += Vec2(0.f, 2.f / m_currentScale);
