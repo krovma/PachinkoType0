@@ -55,6 +55,10 @@ public:
 	bool DoMouseWheelDown();
 	bool DoMouseWheelUp();
 
+	bool OnGoCollide(EventParam& param);
+	bool OnGoEnterTg(EventParam& param);
+	bool OnGoLeaveTg(EventParam& param);
+	bool OnGoDestroy(EventParam& param);
 
 //DEBUG
 	void ToggleDebugView();

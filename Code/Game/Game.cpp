@@ -25,6 +25,7 @@
 #include "Game/Map.hpp"
 #include <math.h>
 #include "App.hpp"
+#include "Engine/Physics/Collision2D.hpp"
 
 ConstantBuffer *_buf;
 extern WindowContext* g_theWindow;
@@ -68,6 +69,10 @@ void Game::Startup()
 	g_Event->SubscribeEventCallback("Test", DevConsole::Command_Test);
 	g_Event->SubscribeEventCallback("save", __save);
 	g_Event->SubscribeEventCallback("load", __load);
+	g_Event->SubscribeEventCallback("GameCollision", this, &Game::OnGoCollide);
+	g_Event->SubscribeEventCallback("GameEnterTg", this, &Game::OnGoEnterTg);
+	g_Event->SubscribeEventCallback("GameLeaveTg", this, &Game::OnGoLeaveTg);
+	g_Event->SubscribeEventCallback("GameGoDestroy", this, &Game::OnGoDestroy);
 
 	g_GamePhysics = new PhysicsSystem();
 	g_GamePhysics->Startup();
@@ -132,6 +137,13 @@ void Game::Update(float deltaSeconds)
 		m_entites[m_possessedEntityIndex]->SetPosition(m_cursor);
 	}
 	g_GamePhysics->Update(g_theApp->GetFixedClock()->GetFrameTime());
+	for (auto it = m_entites.begin(); it != m_entites.end();) {
+		if ((*it)->GetRigidbody()->m_isGarbage) {
+			it = m_entites.erase(it);
+			continue;
+		}
+		++it;
+	}
 	for (auto eachEntity : m_entites) {
 		if (eachEntity->IsOffScreen()) {
 			eachEntity->MarkGarbage();
@@ -178,6 +190,7 @@ void Game::Update(float deltaSeconds)
 
 		}
 	}
+	g_GamePhysics->cleanup();
 }
 
 void Game::Render() const
@@ -187,6 +200,8 @@ void Game::Render() const
 	RenderTargetView* renderTarget = g_theRenderer->GetFrameColorTarget();
 	m_mainCamera->SetRenderTarget(renderTarget);
 	g_theRenderer->BeginCamera(*m_mainCamera);
+	m_mainCamera->SetDepthStencilTarget(g_theRenderer->GetFrameDepthStencilTarget());
+	g_theRenderer->ClearDepthStencilTarget(0);
 	g_theRenderer->ClearColorTarget(Rgba(0.f, 0.f, 0.f));
 	g_theRenderer->BindShader(m_shader);
 	_buf = g_theRenderer->GetModelBuffer();
@@ -377,6 +392,14 @@ void Game::_SpawnOBB(Vec2& start, Vec2& end, PhysicsSimulationType simulation)
 	createdRb->SetFriction(m_defaultFriction);
 	createdRb->SetSimulationType(simulation);
 	createdEntity->BindRigidbody(createdRb);
+	auto c = createdRb->GetCollider();
+	c->onEnterEvent = "GameEnterTg";
+	c->onLeaveEvent = "GameLeaveTg";
+	if (simulation == PHSX_SIM_STATIC) {
+		g_GamePhysics->UseAsTrigger(createdRb);
+	} else {
+		createdRb->GetCollider()->onCollisionEvent = "GameCollision";
+	}
 	m_entites.push_back(createdEntity);
 }
 
@@ -432,6 +455,13 @@ void Game::_SpawnCapsule(Vec2& start, Vec2& end, PhysicsSimulationType simulatio
 	createdRb->SetBounciness(m_defaultBounce);
 	createdRb->SetFriction(m_defaultFriction);
 	createdRb->SetSimulationType(simulation);
+	auto c = createdRb->GetCollider();
+	c->onEnterEvent = "GameEnterTg";
+	c->onLeaveEvent = "GameLeaveTg";
+	if (simulation == PHSX_SIM_STATIC) {
+		c->onEnterEvent = "GameGoDestroy";
+		g_GamePhysics->UseAsTrigger(createdRb);
+	}
 	createdEntity->BindRigidbody(createdRb);
 	m_entites.push_back(createdEntity);
 }
@@ -492,6 +522,7 @@ Rigidbody2D* Game::_GetNearestRigidBodyAt(const Vec2& pos)
 	if (closetEntityIndex < m_entites.size()) {
 		return m_entites[closetEntityIndex]->GetRigidbody();
 	}
+	return nullptr;
 }
 
 ////////////////////////////////
@@ -798,5 +829,36 @@ bool Game::DoMouseWheelUp()
 	m_currentScale = Clamp(m_currentScale, 1.f, 3.f);
 	_RelocateCamera();
 	_ClampCamera();
+	return true;
+}
+
+bool Game::OnGoCollide(EventParam& param)
+{
+	Collision2D* p = reinterpret_cast<Collision2D*>(atoll(param.GetString("collision", "0").c_str()));
+	DebugRenderer::Log(Stringf("Hit: %f", p->collideWith->m_rigidbody->GetMassKg()));
+	return true;
+}
+
+bool Game::OnGoEnterTg(EventParam& param)
+{
+	Collider2D* me = reinterpret_cast<Collider2D*>(atoll(param.GetString("collider", "0").c_str()));
+	Collider2D* into = reinterpret_cast<Collider2D*>(atoll(param.GetString("into", "0").c_str()));
+	DebugRenderer::Log(Stringf("%f Enter %f", me->m_rigidbody->GetMassKg(), into->m_rigidbody->GetMassKg()));
+	return true;
+}
+
+bool Game::OnGoLeaveTg(EventParam& param)
+{
+	Collider2D* me = reinterpret_cast<Collider2D*>(atoll(param.GetString("collider", "0").c_str()));
+	Collider2D* from = reinterpret_cast<Collider2D*>(atoll(param.GetString("from", "0").c_str()));
+	DebugRenderer::Log(Stringf("%f Leave %f", me->m_rigidbody->GetMassKg(), from->m_rigidbody->GetMassKg()));
+	return true;
+}
+
+bool Game::OnGoDestroy(EventParam& param)
+{
+	Collider2D* me = reinterpret_cast<Collider2D*>(atoll(param.GetString("collider", "0").c_str()));
+	//Collider2D* into = reinterpret_cast<Collider2D*>(atoll(param.GetString("from", "0").c_str()));
+	g_GamePhysics->DeleteRigidbody2D(me->m_rigidbody);
 	return true;
 }
