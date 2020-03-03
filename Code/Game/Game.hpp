@@ -109,6 +109,7 @@ private:
 
 	std::vector<Entity*> m_entites;
 //DEBUG
+	bool m_createTrigger = false;
 	bool m_flagDebug = true;
 	float m_upSeconds = 0.f;
 };

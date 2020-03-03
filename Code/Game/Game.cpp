@@ -222,7 +222,7 @@ void Game::Render() const
 
 	//g_theRenderer->BindTextureViewWithSampler(0, DevConsole::s_consoleFont->GetFontTexture());
 	std::string info = Stringf("Obj: %u Mass NM:%s Bounce ,.: %.2f Friction ;\': %.2f", m_entites.size()
-		, m_autoMass ? "[A]uto" : Stringf(" %.2f",m_defaultMass).c_str(),
+		, m_autoMass ? "Auto[F3 Toggle]" : Stringf(" %.2f",m_defaultMass).c_str(),
 		m_defaultBounce, m_defaultFriction);
 	DebugRenderer::DrawText2D(AABB2(0, 980, 1375, 1000), DevConsole::s_consoleFont, 20.f, info, 0.f, BitmapFont::ALIGHMENT_LEFT, Rgba::WHITE);
 	//DevConsole::s_consoleFont->AddVertsForText2D(verts, Vec2(0, 98.f), 1.5f, info, Rgba::SILVER);
@@ -238,7 +238,7 @@ void Game::Render() const
 
 	}
 	//g_theRenderer->DrawVertexArray(verts.size(), verts);
-	info = Stringf("Type[F1]: %s Sim[F2]: %s", (m_generateOBB?"Box":"Capsule"), (m_generateStatic?"Static":"Dynamic"));
+	info = Stringf("Type[F1]: %s Sim[F2]: %s Trigger[T]: %s", (m_generateOBB?"Box":"Capsule"), (m_generateStatic?"Static":"Dynamic"), (m_createTrigger?"Yes":"No"));
 	DebugRenderer::DrawText2D(AABB2(0, 0, 1375, 20), DevConsole::s_consoleFont, 20.f, info, 0.f, BitmapFont::ALIGHMENT_LEFT, Rgba::CYAN);
 
 	_RenderDebugInfo(true);
@@ -395,7 +395,7 @@ void Game::_SpawnOBB(Vec2& start, Vec2& end, PhysicsSimulationType simulation)
 	auto c = createdRb->GetCollider();
 	c->onEnterEvent = "GameEnterTg";
 	c->onLeaveEvent = "GameLeaveTg";
-	if (simulation == PHSX_SIM_STATIC) {
+	if (m_createTrigger) {
 		g_GamePhysics->UseAsTrigger(createdRb);
 	} else {
 		createdRb->GetCollider()->onCollisionEvent = "GameCollision";
@@ -458,7 +458,7 @@ void Game::_SpawnCapsule(Vec2& start, Vec2& end, PhysicsSimulationType simulatio
 	auto c = createdRb->GetCollider();
 	c->onEnterEvent = "GameEnterTg";
 	c->onLeaveEvent = "GameLeaveTg";
-	if (simulation == PHSX_SIM_STATIC) {
+	if (m_createTrigger) {
 		c->onEnterEvent = "GameGoDestroy";
 		g_GamePhysics->UseAsTrigger(createdRb);
 	}
@@ -616,7 +616,9 @@ void Game::DoKeyDown(unsigned char keyCode)
 		if (keyCode == KEY_F2) {
 			m_generateStatic = !m_generateStatic;
 		}
-
+		if (keyCode == 'G') {
+		m_createTrigger = !m_createTrigger;
+		}
 	} else {
 		if (keyCode == KEY_DELETE) {
 			m_entites[m_possessedEntityIndex]->MarkGarbage();

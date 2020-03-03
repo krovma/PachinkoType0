@@ -7,6 +7,7 @@
 #include "Engine/Develop/DevConsole.hpp"
 #include "Engine/Core/Time.hpp"
 #include "Engine/Develop/DebugRenderer.hpp"
+#include "Engine/Core/WindowContext.hpp"
 //////////////////////////////////////////////////////////////////////////
 App* g_theApp = nullptr;
 InputSystem* g_theInput = nullptr;
@@ -36,6 +37,7 @@ App::~App()
 void App::Startup()
 {
 	g_theInput = new InputSystem();
+	//IntVec2 resolution = g_theWindow->GetClientResolution();
 	g_theRenderer = new RenderContext(g_theWindow->m_hWnd, RESOLUTION_WIDTH, RESOLUTION_HEIGHT);
 	g_theAudio = new AudioSystem();
 	g_theInput->StartUp();
