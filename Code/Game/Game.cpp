@@ -238,7 +238,7 @@ void Game::Render() const
 
 	}
 	//g_theRenderer->DrawVertexArray(verts.size(), verts);
-	info = Stringf("Type[F1]: %s Sim[F2]: %s Trigger[T]: %s", (m_generateOBB?"Box":"Capsule"), (m_generateStatic?"Static":"Dynamic"), (m_createTrigger?"Yes":"No"));
+	info = Stringf("Type[F1]: %s Sim[F2]: %s Trigger[G]: %s", (m_generateOBB?"Box":"Capsule"), (m_generateStatic?"Static":"Dynamic"), (m_createTrigger?"Yes":"No"));
 	DebugRenderer::DrawText2D(AABB2(0, 0, 1375, 20), DevConsole::s_consoleFont, 20.f, info, 0.f, BitmapFont::ALIGHMENT_LEFT, Rgba::CYAN);
 
 	_RenderDebugInfo(true);
