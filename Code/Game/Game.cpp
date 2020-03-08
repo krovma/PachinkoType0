@@ -66,7 +66,7 @@ Game::~Game()
 
 void Game::Startup()
 {
-	g_Event->SubscribeEventCallback("Test", DevConsole::Command_Test);
+	//g_Event->SubscribeEventCallback("Test", DevConsole::Command_Test);
 	g_Event->SubscribeEventCallback("save", __save);
 	g_Event->SubscribeEventCallback("load", __load);
 	g_Event->SubscribeEventCallback("GameCollision", this, &Game::OnGoCollide);
